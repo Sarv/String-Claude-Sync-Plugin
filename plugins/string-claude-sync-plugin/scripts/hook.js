@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Claude Code Stop hook for String Claude Sync.
-// Marks the session as having new lines (~/.claude-recall/pending/<session>.json, with the account Claude Code is
+// Marks the session as having new lines (~/.string-claude-sync/pending/<session>.json, with the account Claude Code is
 // logged in with right now) and starts scripts/push.js detached, which sends the lines to the server.
 // Never blocks or fails Claude Code: no network here, always exits 0. If the server is down the marker stays and the
 // next hook (of any session) sends it.

@@ -5,7 +5,7 @@
 //   node scripts/push.js --all      first sync: mark every transcript under ~/.claude/projects, then send
 //   node scripts/push.js --status   server, device approval, pending sessions
 //
-// ~/.claude-recall/ (STRING_CLAUDE_SYNC_DIR)
+// ~/.string-claude-sync/ (STRING_CLAUDE_SYNC_DIR; moved from ~/.claude-recall, its old name, on first run)
 //   pending/<session>.json   one per session with lines to send (written by the hook; removed once sent)
 //   state.json               read position (bytes) per transcript; if lost, the server is asked (GET /api/offset)
 //   device.json              device id + secret, approval status, current token (chmod 600)
@@ -13,7 +13,7 @@
 // (Not the plugin's own folder: that one is replaced on every update. The same folder is shared by the plugin
 // and a hand-installed hook, so both on one machine still make one pusher and one read position.)
 //
-// Server: STRING_CLAUDE_SYNC_URL (default http://127.0.0.1:4000). With STRING_CLAUDE_SYNC_ENROLL_TOKEN set (e.g. from managed
+// Server: STRING_CLAUDE_SYNC_URL, else config.json, else defaults.json next to scripts/, else http://127.0.0.1:4000. With STRING_CLAUDE_SYNC_ENROLL_TOKEN set (e.g. from managed
 // settings) the device asks to be approved first and then pushes with its own short-lived token.
 const fs = require('fs');
 const os = require('os');
@@ -23,7 +23,8 @@ const crypto = require('crypto');
 
 // STRING_CLAUDE_SYNC_<NAME>; the older CLAUDE_RECALL_<NAME> still works
 const env = (name) => process.env[`STRING_CLAUDE_SYNC_${name}`] || process.env[`CLAUDE_RECALL_${name}`];
-const DIR = env('DIR') || path.join(os.homedir(), '.claude-recall');
+const DIR = env('DIR') || path.join(os.homedir(), '.string-claude-sync');
+const OLD_DIR = path.join(os.homedir(), '.claude-recall'); // its name before String Claude Sync
 const PENDING = path.join(DIR, 'pending');
 const STATE = path.join(DIR, 'state.json');
 const DEVICE = path.join(DIR, 'device.json');
@@ -44,12 +45,17 @@ function writeJson(file, value, mode = 0o600) {
   fs.writeFileSync(tmp, JSON.stringify(value, null, 2), { mode });
   fs.renameSync(tmp, file); // atomic: a crash never leaves half a file
 }
+/**
+ * Server URL, first one set wins: STRING_CLAUDE_SYNC_URL (managed settings, which a user cannot override; or the
+ * environment) → the plugin's defaults.json (the URL most machines use, kept in git) → http://127.0.0.1:<port>.
+ * Nothing on the machine itself can redirect it. The enrollment token has no default: it is per organisation.
+ */
 function config() {
-  const file = readJson(path.join(DIR, 'config.json'), {});
+  const defaults = env('NO_DEFAULTS') ? {} : readJson(path.join(__dirname, '..', 'defaults.json'), {});
   const port = env('PORT') || process.env.APP_PORT || 4000;
   return {
-    url: (env('URL') || file.url || `http://127.0.0.1:${port}`).replace(/\/+$/, ''),
-    enrollToken: env('ENROLL_TOKEN') || file.enroll_token || '',
+    url: (env('URL') || defaults.url || `http://127.0.0.1:${port}`).replace(/\/+$/, ''),
+    enrollToken: env('ENROLL_TOKEN') || '',
   };
 }
 function log(msg) {
@@ -88,6 +94,28 @@ function account() {
     return null;
   }
 }
+
+/**
+ * Moves ~/.claude-recall (the folder's old name) to ~/.string-claude-sync once, keeping the device approval, read
+ * positions and waiting sessions. Two hooks at once: whichever is second moves what the first left. Nothing is deleted.
+ */
+function migrate() {
+  if (env('DIR') || !fs.existsSync(OLD_DIR)) return;
+  try { fs.renameSync(OLD_DIR, DIR); return; } catch {}
+  try {
+    fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
+    for (const name of fs.readdirSync(OLD_DIR)) {
+      const from = path.join(OLD_DIR, name);
+      const to = path.join(DIR, name);
+      if (name === 'pending' && fs.existsSync(to)) {
+        for (const m of fs.readdirSync(from)) if (!fs.existsSync(path.join(to, m))) fs.renameSync(path.join(from, m), path.join(to, m));
+      } else if (!fs.existsSync(to)) fs.renameSync(from, to);
+    }
+    fs.rmdirSync(path.join(OLD_DIR, 'pending'), { recursive: false });
+  } catch {}
+  try { fs.rmdirSync(OLD_DIR); } catch {} // only if it is empty now
+}
+migrate();
 
 /** Marks a session as having lines to send (the hook calls this; it is cheap and never throws). */
 function mark({ session_id, transcript_path, cwd = null, account: acct = null, hook = false }) {

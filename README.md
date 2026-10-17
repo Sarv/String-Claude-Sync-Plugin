@@ -23,6 +23,8 @@ Paste into claude.ai → Organization settings → Claude Code → Managed setti
 
 Claude Code installs the plugin at the next session start and keeps it updated.
 
+The server URL is taken from the first of: `STRING_CLAUDE_SYNC_URL` (managed settings, which users can't override, or the environment), the plugin's `defaults.json` (the URL most machines use, set once in git), `http://127.0.0.1:4000`. So managed settings only need the URL when it differs. The enrollment token has no default: it is per organisation.
+
 ## Install on one machine
 
 ```bash
@@ -30,7 +32,7 @@ claude plugin marketplace add Sarv/String-Claude-Sync-Plugin
 claude plugin install string-claude-sync-plugin@string-tools
 ```
 
-Set `STRING_CLAUDE_SYNC_URL` (default `http://127.0.0.1:4000`) and, for a shared server, `STRING_CLAUDE_SYNC_ENROLL_TOKEN` in the environment or in `~/.claude-recall/config.json` (`{ "url": "…", "enroll_token": "…" }`).
+Set `STRING_CLAUDE_SYNC_URL` (default `http://127.0.0.1:4000`) and, for a shared server, `STRING_CLAUDE_SYNC_ENROLL_TOKEN` in the `env` block of `~/.claude/settings.json` (e.g. someone using it without an organisation).
 
 ## What happens on a machine
 
@@ -38,9 +40,9 @@ Set `STRING_CLAUDE_SYNC_URL` (default `http://127.0.0.1:4000`) and, for a shared
 2. After approval every reply's new lines are sent (gzip, up to 4 MB per request). If the server is down they wait and go with the next reply.
 3. Rejected: nothing more is sent for those sessions; a new Claude Code session asks again.
 
-Everything it keeps is in `~/.claude-recall/` (waiting sessions, read positions, the device id and token, `push.log`). It only reads Claude Code's transcripts, never changes them.
+Everything it keeps is in `~/.string-claude-sync/` (waiting sessions, read positions, the device id and token, `push.log`). It only reads Claude Code's transcripts, never changes them.
 
-To see what it is doing, run the plugin's `scripts/push.js --status` (Claude Code keeps the plugin under `~/.claude/plugins/`), or read `~/.claude-recall/push.log`.
+To see what it is doing, run the plugin's `scripts/push.js --status` (Claude Code keeps the plugin under `~/.claude/plugins/`), or read `~/.string-claude-sync/push.log`.
 
 ## Requirements
 

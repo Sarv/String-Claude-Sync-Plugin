@@ -9,7 +9,7 @@ node_modules/
 *.pem
 *.key
 
-# what the pusher writes lives in ~/.claude-recall on each machine, never here
+# what the pusher writes lives in ~/.string-claude-sync on each machine, never here
 pending/
 state.json
 device.json
