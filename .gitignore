@@ -1,5 +1,26 @@
+# String Claude Sync plugin (published from Sarv/String-Claude-Sync by scripts/publish-plugin.sh)
+
+# the plugin has no dependencies; never commit any
 node_modules/
-.DS_Store
-*.bak-*
-*.tmp
+
+# secrets: the server URL and enrollment token come from managed settings / the environment
 .env
+.env.*
+*.pem
+*.key
+
+# what the pusher writes lives in ~/.claude-recall on each machine, never here
+pending/
+state.json
+device.json
+push.lock/
+*.log
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+*.tmp

@@ -1,6 +1,0 @@
-/* StringHub fonts — loaded once per app via `import '@stringhub/theme/fonts.css'` in main.jsx.
-   Inter matches the orbit react-dashboard MUI typography (fontFamily: "Inter"). */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-/* Icons: Boxicons 2.1.4, the icon font the StringHub dashboard uses (<i class="bx bx-search"></i>).
-   Bundled apps can import 'boxicons/css/boxicons.min.css' from npm instead; loading it twice is harmless. */
-@import url('https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css');
