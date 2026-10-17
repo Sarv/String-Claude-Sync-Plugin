@@ -1,0 +1,124 @@
+<!doctype html>
+<!-- StringHub template — Workspace settings. Built only from design-system.css classes.
+     Copy the structure, keep the class names, swap the content. -->
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Workspace settings · StringHub</title>
+<link rel="stylesheet" href="../fonts.css" />
+<link rel="stylesheet" href="../design-system.css" />
+<script src="../stringhub-ui.js" defer></script>
+</head>
+<body>
+<div class="sh-shell">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sh-sidebar" aria-label="Main navigation">
+    <div class="sh-brand"><img src="../icons/stringhub-mark.svg" alt="" /><span>StringHub</span></div>
+    <nav class="sh-sidebar-panel">
+      <div class="sh-nav-label">Workspace</div>
+      <a class="sh-nav-item" href="dashboard.html"><i class="bx bx-grid-alt icon-18" aria-hidden="true"></i><span>Dashboard</span></a>
+      <a class="sh-nav-item" href="detail-page.html"><i class="bx bx-support icon-18" aria-hidden="true"></i><span>Tickets</span></a>
+      <a class="sh-nav-item" href="list-page.html"><i class="bx bx-group icon-18" aria-hidden="true"></i><span>Contacts</span></a>
+      <a class="sh-nav-item" href="dashboard.html"><i class="bx bx-bar-chart-alt-2 icon-18" aria-hidden="true"></i><span>Reports</span></a>
+      <a class="sh-nav-item active" href="form-page.html" aria-current="page"><i class="bx bx-cog icon-18" aria-hidden="true"></i><span>Settings</span></a>
+    </nav>
+  </aside>
+
+  <div class="sh-body">
+    <!-- ===== Topbar ===== -->
+    <header class="sh-topbar sh-header">
+      <div class="input-group input-search">
+        <i class="bx bx-search icon-16" aria-hidden="true"></i>
+        <input placeholder="Search…" aria-label="Search" />
+      </div>
+      <div class="spacer"></div>
+      <button class="icon-btn" aria-label="Notifications"><i class="bx bx-bell icon-20" aria-hidden="true"></i></button>
+      <button class="icon-btn" aria-label="Toggle dark mode" data-sh-theme-toggle><i class="bx bx-moon icon-20" aria-hidden="true"></i></button>
+      <span class="avatar ring">P</span>
+    </header>
+
+    <!-- ===== Page ===== -->
+    <main class="page">
+      <div class="page-header bar">
+        <div class="page-heading">
+          <ol class="breadcrumb"><li><a href="#">Home</a></li><li><a href="#">Settings</a></li><li aria-current="page">Workspace</li></ol>
+          <h1 class="page-title">Workspace settings</h1>
+          <p class="page-sub">Name, contact details and notification preferences.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-custom-secondary">Discard</button>
+          <button class="btn btn-custom-primary">Save changes</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h3>General</h3><p class="card-sub">Shown to customers on emails and the help center.</p></div></div>
+        <div class="card-pad">
+          <div class="form-grid">
+            <div class="field"><label class="label" for="ws-name">Workspace name</label><input class="input" id="ws-name" value="Acme Support" /></div>
+            <div class="field"><label class="label" for="ws-slug">URL</label>
+              <div class="input-group"><span>stringhub.app/</span><input id="ws-slug" value="acme" /></div></div>
+            <div class="field"><label class="label" for="ws-email">Support email</label><input class="input" id="ws-email" type="email" value="help@acme.io" />
+              <span class="hint">Replies to tickets are sent from this address.</span></div>
+            <div class="field"><label class="label" for="ws-tz">Timezone</label>
+              <select class="select" id="ws-tz"><option>Asia/Kolkata (GMT+5:30)</option><option>UTC</option></select></div>
+            <div class="field span-2"><label class="label" for="ws-sig">Email signature</label>
+              <textarea class="textarea" id="ws-sig">— The Acme Support team</textarea></div>
+          </div>
+        </div>
+        <div class="card-foot"><button class="btn btn-custom-secondary">Cancel</button><button class="btn btn-custom-primary">Save</button></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Notifications</h3></div>
+        <div class="card-pad">
+          <div class="setting-row">
+            <div><div class="sr-title">New ticket assigned</div><div class="sr-desc">Email me when a ticket is assigned to me.</div></div>
+            <input type="checkbox" class="toggle" checked aria-label="New ticket assigned" />
+          </div>
+          <div class="setting-row">
+            <div><div class="sr-title">SLA warnings</div><div class="sr-desc">Notify 30 minutes before a response deadline.</div></div>
+            <input type="checkbox" class="toggle" checked aria-label="SLA warnings" />
+          </div>
+          <div class="setting-row">
+            <div><div class="sr-title">Weekly summary</div><div class="sr-desc">A Monday digest of last week's numbers.</div></div>
+            <input type="checkbox" class="toggle" aria-label="Weekly summary" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h3>Danger zone</h3><p class="card-sub">Irreversible actions.</p></div></div>
+        <div class="card-pad">
+          <div class="setting-row">
+            <div><div class="sr-title">Delete workspace</div><div class="sr-desc">Permanently remove this workspace and all its data.</div></div>
+            <button class="btn btn-tinted-danger" data-sh-open="confirm-delete"><i class="bx bx-trash icon-14" aria-hidden="true"></i> Delete</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Confirmation modal — opened by data-sh-open="confirm-delete"; stringhub-ui.js handles Esc / backdrop / focus -->
+<div class="modal-backdrop" id="confirm-delete" hidden>
+  <div class="card modal-dialog modal-sm" role="dialog" aria-modal="true" aria-labelledby="del-title">
+    <div class="modal-head">
+      <div class="ico danger"><i class="bx bx-trash icon-18" aria-hidden="true"></i></div>
+      <div class="text"><h4 id="del-title">Delete workspace?</h4><p>This removes all tickets and contacts. It can't be undone.</p></div>
+      <button class="close" aria-label="Close" data-sh-close><i class="bx bx-x icon-16" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label class="label" for="confirm-name">Type <strong>acme</strong> to confirm</label><input class="input" id="confirm-name" /></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-custom-secondary" data-sh-close>Cancel</button>
+      <button class="btn btn-danger" data-sh-close>Delete workspace</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Forms & selection" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--bg)}.lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}.box{transform:translateZ(0);position:relative;overflow:hidden;border-radius:12px;border:1px solid var(--border)}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Field, FormGrid, Input, Select, Textarea, InputGroup, Checkbox, Radio, Toggle, SettingRow, PickCard, ChoiceCard, OptionCard, OptionChips, AvatarUpload, Card } = window.StringHubDesignSystem_90e1d8;
+function App() {
+const [langs, setLangs] = React.useState(["English","Hindi"]);
+const [pick, setPick] = React.useState("desk");
+return <div className="stack">
+  <div className="grid-2">
+    <FormGrid><Field label="Workspace name" htmlFor="a"><Input id="a" defaultValue="Acme Support" /></Field><Field label="Timezone" htmlFor="b"><Select id="b" options={["Asia/Kolkata (GMT+5:30)","UTC"]} /></Field>
+      <Field label="URL" htmlFor="c" hint="Customers see this link."><InputGroup id="c" prefix="stringhub.app/" defaultValue="acme" /></Field><Field label="Email" htmlFor="d" error="Enter a valid email"><Input id="d" invalid defaultValue="help@" /></Field></FormGrid>
+    <div className="stack-2"><InputGroup icon="search" search placeholder="Search contacts" aria-label="Search" /><OptionChips options={["English","Hindi","Tamil","Marathi","Bengali"]} value={langs} onChange={setLangs} />
+      <div className="row"><Checkbox label="New tickets" defaultChecked /><Checkbox label="Digest" /><Radio name="r" label="Low" /><Radio name="r" label="High" defaultChecked /></div>
+      <Card><SettingRow title="Auto-assign tickets" description="Round-robin between online agents."><Toggle label="Auto-assign" defaultChecked /></SettingRow></Card></div>
+  </div>
+  <div className="grid-3" style={{alignItems:"start"}}>
+    <PickCard icon="user" title="This desk only" description="Stays private to this desk." selected={pick==="desk"} onClick={()=>setPick("desk")} />
+    <PickCard icon="building" title="Entire workspace" description="Any desk can enable it." selected={pick==="ws"} onClick={()=>setPick("ws")} />
+    <div className="row"><AvatarUpload initials="P" /><ChoiceCard mark="AI" name="Aria · Support" meta="English, Hindi" selected /></div>
+  </div>
+  <OptionCard name="rt" title="Desk address" badge="Recommended" hint="Replies come from support@acme.io so the whole team sees them." checked onChange={()=>{}} />
+</div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script></body></html>

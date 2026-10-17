@@ -1,0 +1,188 @@
+<!doctype html>
+<!-- StringHub template — Contacts. Built only from design-system.css classes.
+     Copy the structure, keep the class names, swap the content. -->
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contacts · StringHub</title>
+<link rel="stylesheet" href="../styles.css" />
+<script src="stringhub-ui.js" defer></script>
+</head>
+<body>
+<div class="sh-shell">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sh-sidebar" aria-label="Main navigation">
+    <div class="sh-brand"><img src="../css/icons/stringhub-mark.svg" alt="" /><span>StringHub</span></div>
+    <nav class="sh-sidebar-panel">
+      <div class="sh-nav-label">Workspace</div>
+      <a class="sh-nav-item" href="dashboard.html"><i class="bx bx-grid-alt icon-18" aria-hidden="true"></i><span>Dashboard</span></a>
+      <a class="sh-nav-item" href="tickets-page.html"><i class="bx bx-support icon-18" aria-hidden="true"></i><span>Tickets</span></a>
+      <a class="sh-nav-item" href="conversation-page.html"><i class="bx bx-message-detail icon-18" aria-hidden="true"></i><span>Conversation</span></a>
+      <a class="sh-nav-item active" href="list-page.html" aria-current="page"><i class="bx bx-group icon-18" aria-hidden="true"></i><span>Contacts</span></a>
+      <a class="sh-nav-item" href="dashboard.html"><i class="bx bx-bar-chart-alt-2 icon-18" aria-hidden="true"></i><span>Reports</span></a>
+      <a class="sh-nav-item" href="form-page.html"><i class="bx bx-cog icon-18" aria-hidden="true"></i><span>Settings</span></a>
+    </nav>
+  </aside>
+
+  <div class="sh-body">
+    <!-- ===== Topbar ===== -->
+    <header class="sh-topbar sh-header">
+      <div class="input-group input-search">
+        <i class="bx bx-search icon-16" aria-hidden="true"></i>
+        <input placeholder="Search…" aria-label="Search" />
+      </div>
+      <div class="spacer"></div>
+      <button class="icon-btn" aria-label="Notifications"><i class="bx bx-bell icon-20" aria-hidden="true"></i></button>
+      <button class="icon-btn" aria-label="Toggle dark mode" data-sh-theme-toggle><i class="bx bx-moon icon-20" aria-hidden="true"></i></button>
+      <span class="avatar ring">P</span>
+    </header>
+
+    <!-- ===== Page ===== -->
+    <main class="page">
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Contacts</h1>
+          <p class="page-sub">Manage contacts and track the tickets raised by each.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-header"><i class="bx bx-download" aria-hidden="true"></i> Export</button>
+          <button class="btn btn-header"><i class="bx bx-upload" aria-hidden="true"></i> Import CSV</button>
+          <button class="btn btn-header"><i class="bx bx-git-merge" aria-hidden="true"></i> Merge duplicates</button>
+          <button class="btn btn-custom-primary" data-sh-open="new-contact"><i class="bx bx-plus" aria-hidden="true"></i> Create Contact</button>
+        </div>
+      </div>
+      <div class="list-toolbar" role="toolbar" aria-label="List controls">
+        <div class="view-toggle" role="group" aria-label="Layout">
+          <button class="active" aria-pressed="true" title="List view" aria-label="List view"><i class="bx bx-list-ul" aria-hidden="true"></i></button>
+          <button aria-pressed="false" title="Split view" aria-label="Split view"><i class="bx bx-sidebar" aria-hidden="true"></i></button>
+        </div>
+        <div class="status-toggle" role="group" aria-label="Show">
+          <button class="active" aria-pressed="true">Active</button><button aria-pressed="false">Deleted</button>
+        </div>
+        <label class="filter-select"><i class="bx bx-filter-alt" aria-hidden="true"></i><select aria-label="Company filter"><option>All</option><option>Has company</option><option>No company</option></select></label>
+        <label class="toolbar-search"><i class="bx bx-search" aria-hidden="true"></i><input placeholder="Search name, email, phone…" aria-label="Search contacts" /></label>
+        <label class="filter-select"><select aria-label="Company"><option>Company: any</option><option>Acme</option><option>Globex</option></select></label>
+        <label class="filter-select"><select aria-label="Channel"><option>Channel: any</option><option>Email</option><option>Chat Widget</option><option>Phone</option></select></label>
+        <button class="date-filter"><i class="bx bx-calendar" aria-hidden="true"></i> Created</button>
+        <button class="date-filter active"><i class="bx bx-history" aria-hidden="true"></i> Updated: 01 Sep – 15 Sep</button>
+        <button class="btn btn-custom-primary lt-push">Save View</button>
+      </div>
+      <div class="table-card">
+        <div class="table-scroll">
+        <table class="ds compact">
+          <thead>
+            <tr><th class="row-check"><input type="checkbox" class="row-checkbox" aria-label="Select all" /></th><th>Contact</th><th>Company</th><th>Primary Email</th><th>Primary Phone</th><th>Channels</th><th style="text-align:center">Open</th><th>Last Seen</th><th class="actions">Actions</th></tr>
+          </thead>
+          <tbody>
+              <tr>
+                <td class="row-check"><input type="checkbox" class="row-checkbox" aria-label="Select Aarav Mehta" /></td>
+                <td><div class="person-cell"><span class="avatar-soft">AM</span><div class="pc-text"><span class="pc-name" title="Aarav Mehta">Aarav Mehta</span><span class="pc-sub">Head of Ops</span></div></div></td>
+                <td><div class="org-cell"><span class="co-chip">AC</span><span>Acme Corp</span></div></td>
+                <td><span class="cell-muted-text">aarav@acme.io</span></td>
+                <td><span class="cell-muted-text">+91 98200 11223</span></td>
+                <td><div class="chip-row"><span class="channel-chip">Email</span><span class="channel-chip">Chat Widget</span><span class="channel-chip">+1</span></div></td>
+                <td class="count-cell hot">2</td>
+                <td><div class="when-cell"><b>25 Sep 2026</b><span>10:42 AM</span></div></td>
+                <td class="actions"><button class="row-settings" aria-label="Actions for Aarav Mehta"><i class="bx bx-cog" aria-hidden="true"></i></button></td>
+              </tr>
+              <tr>
+                <td class="row-check"><input type="checkbox" class="row-checkbox" aria-label="Select Diya Sharma" /></td>
+                <td><div class="person-cell"><span class="avatar-soft">DS</span><div class="pc-text"><span class="pc-name" title="Diya Sharma">Diya Sharma</span><span class="pc-sub">Buyer</span></div></div></td>
+                <td><div class="org-cell"><span class="co-chip">NW</span><span>Northwind</span></div></td>
+                <td><span class="cell-muted-text">diya@northwind.in</span></td>
+                <td><span class="cell-muted-text">+91 99300 44556</span></td>
+                <td><div class="chip-row"><span class="channel-chip">Email</span></div></td>
+                <td class="count-cell">0</td>
+                <td><div class="when-cell"><b>24 Sep 2026</b><span>06:15 PM</span></div></td>
+                <td class="actions"><button class="row-settings" aria-label="Actions for Diya Sharma"><i class="bx bx-cog" aria-hidden="true"></i></button></td>
+              </tr>
+              <tr>
+                <td class="row-check"><input type="checkbox" class="row-checkbox" aria-label="Select Kabir Rao" /></td>
+                <td><div class="person-cell"><span class="avatar-soft">KR</span><div class="pc-text"><span class="pc-name" title="Kabir Rao">Kabir Rao</span></div></div></td>
+                <td><span class="muted">—</span></td>
+                <td><span class="cell-muted-text">kabir@globex.com</span></td>
+                <td><span class="cell-muted-text">—</span></td>
+                <td><div class="chip-row"><span class="channel-chip">Chat Widget</span></div></td>
+                <td class="count-cell hot">1</td>
+                <td><div class="when-cell"><b>22 Sep 2026</b><span>09:03 AM</span></div></td>
+                <td class="actions"><button class="row-settings" aria-label="Actions for Kabir Rao"><i class="bx bx-cog" aria-hidden="true"></i></button></td>
+              </tr>
+              <tr>
+                <td class="row-check"><input type="checkbox" class="row-checkbox" aria-label="Select Meera Iyer" /></td>
+                <td><div class="person-cell"><span class="avatar-soft">MI</span><div class="pc-text"><span class="pc-name" title="Meera Iyer">Meera Iyer</span><span class="pc-sub">Founder</span></div></div></td>
+                <td><div class="org-cell"><span class="co-chip">IN</span><span>Initech</span></div></td>
+                <td><span class="cell-muted-text">meera@initech.co</span></td>
+                <td><span class="cell-muted-text">+91 90040 77889</span></td>
+                <td><div class="chip-row"><span class="channel-chip">Phone</span><span class="channel-chip">Email</span></div></td>
+                <td class="count-cell">0</td>
+                <td><div class="when-cell"><b>20 Sep 2026</b><span>02:30 PM</span></div></td>
+                <td class="actions"><button class="row-settings" aria-label="Actions for Meera Iyer"><i class="bx bx-cog" aria-hidden="true"></i></button></td>
+              </tr>
+              <tr>
+                <td class="row-check"><input type="checkbox" class="row-checkbox" aria-label="Select Rohan Gupta" /></td>
+                <td><div class="person-cell"><span class="avatar-soft">RG</span><div class="pc-text"><span class="pc-name" title="Rohan Gupta">Rohan Gupta</span><span class="pc-sub">IT Admin</span></div></div></td>
+                <td><div class="org-cell"><span class="co-chip">UO</span><span>Umbrella Org</span></div></td>
+                <td><span class="cell-muted-text">rohan@umbrella.org</span></td>
+                <td><span class="cell-muted-text">+91 98111 22334</span></td>
+                <td><div class="chip-row">—</div></td>
+                <td class="count-cell hot">4</td>
+                <td><div class="when-cell"><b>18 Sep 2026</b><span>11:58 AM</span></div></td>
+                <td class="actions"><button class="row-settings" aria-label="Actions for Rohan Gupta"><i class="bx bx-cog" aria-hidden="true"></i></button></td>
+              </tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="pagination">
+          <span>Showing 1–20 of 248 results</span>
+          <div class="pages">
+            <button disabled aria-label="Previous page"><i class="bx bx-chevron-left" aria-hidden="true"></i></button><button class="active">1</button><button>2</button><button>3</button><button disabled>…</button><button>13</button><button aria-label="Next page"><i class="bx bx-chevron-right" aria-hidden="true"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rows checked: render .bulk-bar in the toolbar slot instead of the controls (see components/layouts.html) -->
+      <!-- Empty state: render this inside .table-card (instead of the rows) when nothing matches -->
+      <div class="card" hidden>
+        <div class="empty">
+          <div class="art"><i class="bx bx-group icon-36" aria-hidden="true"></i></div>
+          <h4>No contacts found</h4>
+          <p>No contacts match your search.</p>
+          <button class="btn btn-custom-primary btn-sm"><i class="bx bx-plus icon-14" aria-hidden="true"></i> Create Contact</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Form modal — a <form> may wrap .modal-body + .modal-foot (the CSS keeps the body scrollable
+     and the footer pinned). Use .modal-md for forms, .modal-sm for confirmations, .modal-lg for wide content. -->
+<div class="modal-backdrop" id="new-contact" hidden>
+  <form class="card modal-dialog modal-md" role="dialog" aria-modal="true" aria-labelledby="nc-title"
+        onsubmit="event.preventDefault(); StringHubUI.close('new-contact'); StringHubUI.toast({tone: 'success', title: 'Contact added'})">
+    <div class="modal-head">
+      <div class="ico"><i class="bx bx-group icon-18" aria-hidden="true"></i></div>
+      <div class="text"><h4 id="nc-title">New contact</h4><p>They'll appear in your contact list right away.</p></div>
+      <button type="button" class="close" aria-label="Close" data-sh-close><i class="bx bx-x icon-16" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label class="label" for="nc-name">Full name</label><input class="input" id="nc-name" required /></div>
+        <div class="field"><label class="label" for="nc-email">Email</label><input class="input" id="nc-email" type="email" required /></div>
+        <div class="field"><label class="label" for="nc-type">Type</label>
+          <select class="select" id="nc-type"><option>Customer</option><option>Lead</option><option>Partner</option></select></div>
+        <div class="field"><label class="label" for="nc-phone">Phone</label><input class="input" id="nc-phone" type="tel" /></div>
+        <div class="field span-2"><label class="label" for="nc-notes">Notes</label><textarea class="textarea" id="nc-notes"></textarea>
+          <span class="hint">Only visible to your team.</span></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-custom-secondary" data-sh-close>Cancel</button>
+      <button type="submit" class="btn btn-custom-primary">Add contact</button>
+    </div>
+  </form>
+</div>
+</body>
+</html>

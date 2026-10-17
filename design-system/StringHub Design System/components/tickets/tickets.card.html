@@ -1,0 +1,39 @@
+<!-- @dsCard group="Components" viewport="1200x620" name="List page with views" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--bg)}.lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { ListHeaderBar, ListFiltersBar, TicketListGroup, TicketRow, StateRing, PriorityFlag } = window.StringHubDesignSystem_90e1d8;
+const T = [
+  { id:"TKT-1042", subject:"Refund not received for order 88213", state:"in-progress", priority:"urgent", assignee:{name:"Diya Sharma",tone:1}, contact:{name:"Aarav Mehta",tone:3}, tags:[{name:"Billing",color:"#E6A117"},{name:"Refund",color:"#D32F2F"}], replies:4, updated:"25 Sep 2026", channel:{type:"email",name:"Support Mail"} },
+  { id:"TKT-1041", subject:"Cannot log in after changing my password", state:"open", priority:"high", assignee:{name:"Arjun Mehta",tone:2}, contact:{name:"Kabir Rao",tone:6}, tags:[{name:"Login",color:"#1976D2"}], replies:7, updated:"25 Sep 2026", channel:{type:"chat",name:"Website Chat"} },
+  { id:"TKT-1039", subject:"Invoice shows the wrong GST number", state:"on-hold", priority:"medium", assignee:{name:"Priya Nair",tone:3}, contact:{name:"Meera Iyer",tone:7}, tags:[{name:"Billing",color:"#E6A117"}], replies:2, updated:"24 Sep 2026", channel:{type:"email",name:"Support Mail"} },
+  { id:"TKT-1031", subject:"Add bulk export for call recordings", state:"open", priority:"none", contact:{name:"Sara Khan",tone:2}, tags:[{name:"Feature",color:"#7E7BDE"}], replies:0, updated:"22 Sep 2026", channel:{type:"portal",name:"Help Portal"} },
+  { id:"TKT-1027", subject:"Agent status shows offline while on a call", state:"resolved", priority:"high", assignee:{name:"Diya Sharma",tone:1}, contact:{name:"Nikhil Jain",tone:5}, tags:[{name:"Bug",color:"#D32F2F"},{name:"Voice",color:"#2E9E5A"}], replies:5, updated:"21 Sep 2026", channel:{type:"phone",name:"Support Line"} },
+];
+
+function App() {
+  const [view, setView] = React.useState("list");
+  return <div style={{"--page-gutter":"0px", margin:"-16px"}}>
+    <div className="tk-head-wrap" style={{position:"static", margin:"0 0 16px"}}>
+      <ListHeaderBar desk="Billing Support" count={128} view={view} onViewChange={setView} />
+      <ListFiltersBar filters={[{label:"State",values:[{text:"In Progress",color:"#F59E0B"},{text:"Open",color:"#94A3B8"}]},{label:"Priority",values:[{text:"Urgent",color:"#EF4444"}]}]} />
+    </div>
+    <div style={{padding:"0 16px"}}>
+      <div className="tk-list">
+        <TicketListGroup state="in-progress" count={1} avatars={[{name:"Diya Sharma",tone:1}]}><TicketRow ticket={T[0]} /></TicketListGroup>
+        <TicketListGroup state="open" count={2} avatars={[{name:"Arjun Mehta",tone:2}]}><TicketRow ticket={T[1]} /><TicketRow ticket={T[3]} /></TicketListGroup>
+      </div>
+      <p className="lbl">Conversation route</p>
+      <div className="tk-conv-route"><div className="tk-list"><div className="tk-list-card"><TicketRow ticket={T[0]} conversation /><TicketRow ticket={T[1]} conversation /></div></div></div>
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script></body></html>

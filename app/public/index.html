@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Recall</title>
+  <link rel="icon" href="/ds/assets/stringhub-mark.svg" />
+  <link rel="stylesheet" href="/ds/styles.css" />
+  <link rel="stylesheet" href="/app.css" />
+  <script>
+    try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+  </script>
+</head>
+<body>
+<div class="sh-shell">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sh-sidebar" aria-label="Main navigation">
+    <div class="sh-brand"><img src="/ds/assets/stringhub-mark.svg" alt="" /><span>Claude <span class="brand-sub">Recall</span></span></div>
+    <nav class="sh-sidebar-panel">
+      <a class="sh-nav-item" href="#/chat" data-tab="chat" data-tip="Chats" data-tip-pos="right"><i class="bx bx-message-detail icon-18" aria-hidden="true"></i><span>Chats</span></a>
+      <a class="sh-nav-item" href="#/search" data-tab="search" data-tip="Search" data-tip-pos="right"><i class="bx bx-search icon-18" aria-hidden="true"></i><span>Search</span></a>
+      <a class="sh-nav-item" href="#/sync" data-tab="sync" data-tip="Sync" data-tip-pos="right"><i class="bx bx-sync icon-18" aria-hidden="true"></i><span>Sync</span></a>
+      <a class="sh-nav-item" href="#/projects" data-tab="projects" data-tip="Projects" data-tip-pos="right"><i class="bx bx-folder-open icon-18" aria-hidden="true"></i><span>Projects</span></a>
+      <a class="sh-nav-item" href="#/devices" data-tab="devices" data-tip="Devices" data-tip-pos="right"><i class="bx bx-devices icon-18" aria-hidden="true"></i><span>Devices</span></a>
+      <a class="sh-nav-item" href="#/accounts" data-tab="accounts" data-tip="Accounts" data-tip-pos="right"><i class="bx bx-group icon-18" aria-hidden="true"></i><span>Accounts</span></a>
+      <a class="sh-nav-item" href="#/stats" data-tab="stats" data-tip="Stats" data-tip-pos="right"><i class="bx bx-bar-chart-alt-2 icon-18" aria-hidden="true"></i><span>Stats</span></a>
+      <a class="sh-nav-item" href="#/settings" data-tab="settings" data-tip="Settings" data-tip-pos="right"><i class="bx bx-cog icon-18" aria-hidden="true"></i><span>Settings</span></a>
+      <a class="sh-nav-item" href="#/guide" data-tab="guide" data-tip="Guide" data-tip-pos="right"><i class="bx bx-help-circle icon-18" aria-hidden="true"></i><span>Guide</span></a>
+      <div class="nav-divider" role="separator"></div>
+      <div class="sh-nav-label">Projects</div>
+      <div id="nav-projects" class="nav-tree"></div>
+    </nav>
+  </aside>
+
+  <div class="sh-body">
+    <!-- ===== Topbar ===== -->
+    <header class="sh-topbar sh-header">
+      <button id="sidebar-toggle" class="icon-btn sm" aria-label="Collapse sidebar" data-tip="Collapse sidebar" data-tip-pos="bottom"><i class="bx bx-sidebar icon-16" aria-hidden="true"></i></button>
+      <span id="health" class="status draft"><span class="pulse"></span> <span class="txt">Connecting…</span></span>
+      <div class="spacer"></div>
+      <button id="pane-add" class="btn btn-sm btn-header" hidden><i class="bx bx-dock-right" aria-hidden="true"></i> Split pane</button>
+      <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode"><i class="bx bx-moon icon-20" aria-hidden="true"></i></button>
+    </header>
+
+    <!-- ===== Chats (1–3 panes) ===== -->
+    <main id="view-chat" class="page view view-fill" hidden aria-label="Chats">
+      <div id="panes" class="panes"></div>
+    </main>
+
+    <!-- ===== Search ===== -->
+    <main id="view-search" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Search</h1>
+          <p class="page-sub">Find past prompts and replies by meaning or keyword. Results come straight from the index.</p>
+        </div>
+      </div>
+      <form id="s-form" class="list-toolbar" role="search">
+        <label class="toolbar-search wide"><i class="bx bx-search" aria-hidden="true"></i><input id="s-q" placeholder="Pichhli baat-cheet me kya dhoondhna hai?" aria-label="Search" autocomplete="off" /></label>
+        <label class="filter-select"><i class="bx bx-folder" aria-hidden="true"></i><select id="s-project" aria-label="Project"><option value="">All projects</option></select></label>
+        <label class="filter-select"><select id="s-role" aria-label="Who">
+          <option value="">Prompts and replies</option>
+          <option value="user">My prompts</option>
+          <option value="assistant">Claude replies</option>
+        </select></label>
+        <div class="seg" role="group" aria-label="Search mode" id="s-mode">
+          <button type="button" class="seg-btn is-on" data-mode="hybrid" aria-pressed="true">Hybrid</button>
+          <button type="button" class="seg-btn" data-mode="semantic" aria-pressed="false">Semantic</button>
+          <button type="button" class="seg-btn" data-mode="keyword" aria-pressed="false">Keyword</button>
+        </div>
+        <button type="submit" class="btn btn-custom-primary lt-push"><i class="bx bx-search" aria-hidden="true"></i> Search</button>
+      </form>
+      <p id="s-meta" class="muted meta-line"></p>
+      <div id="s-results" class="results"></div>
+    </main>
+
+    <!-- ===== Sync ===== -->
+    <main id="view-sync" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Sync</h1>
+          <p class="page-sub">Bring Claude Code transcripts into the index, project by project.</p>
+        </div>
+        <div class="page-actions">
+          <button id="sy-rescan" class="btn btn-header"><i class="bx bx-refresh" aria-hidden="true"></i> Rescan projects</button>
+          <button id="sy-selected" class="btn btn-header" disabled><i class="bx bx-check-square" aria-hidden="true"></i> <span>Sync selected</span></button>
+          <button id="sy-all" class="btn btn-custom-primary"><i class="bx bx-sync" aria-hidden="true"></i> Sync all</button>
+        </div>
+      </div>
+      <div class="list-toolbar">
+        <label class="inline-setting"><input id="sy-auto" type="checkbox" class="toggle" aria-label="Auto-sync" /> Auto-sync</label>
+        <label class="filter-select"><i class="bx bx-time-five" aria-hidden="true"></i><select id="sy-interval" aria-label="Auto-sync interval">
+          <option value="1">Every 1 min</option><option value="2">Every 2 min</option><option value="5">Every 5 min</option>
+          <option value="10">Every 10 min</option><option value="15">Every 15 min</option><option value="30">Every 30 min</option><option value="60">Every 60 min</option>
+        </select></label>
+        <span id="sy-state" class="muted lt-push"></span>
+      </div>
+      <div id="sy-mode"></div>
+      <div class="card sync-health">
+        <div class="card-head"><div><h3>Sync health</h3><p class="card-sub">How saving is going. Updates live while this page is open.</p></div><span id="sh-status" class="status draft"><span class="pulse"></span> <span class="txt">Checking…</span></span></div>
+        <div class="card-pad">
+          <div id="sh-progress" class="sh-progress" hidden>
+            <div class="progress-row"><span id="sh-progress-text"></span><span id="sh-progress-pct" class="muted"></span></div>
+            <div class="progress-track"><span id="sh-progress-fill" class="progress-fill"></span></div>
+          </div>
+          <dl class="kv" id="sh-kv"></dl>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-scroll">
+          <table class="ds compact">
+            <thead>
+              <tr>
+                <th class="row-check"><input id="sy-check-all" type="checkbox" class="row-checkbox" aria-label="Select all" /></th>
+                <th>Project</th><th class="num">Sessions</th><th class="num">Indexed</th><th class="num">Pending</th><th>Last synced</th><th class="actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sy-rows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Live log</h3><p class="card-sub">What the sync is doing right now.</p></div></div>
+        <div class="card-pad"><pre id="sy-log" class="code-block wrap log"></pre></div>
+      </div>
+    </main>
+
+    <!-- ===== Stats ===== -->
+    <main id="view-stats" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Stats</h1>
+          <p class="page-sub">Activity and token use across your Claude Code history.</p>
+        </div>
+        <div class="page-actions st-actions">
+          <label class="filter-select"><i class="bx bx-user" aria-hidden="true"></i><select id="st-account" aria-label="Account"><option value="">All accounts</option></select></label>
+          <label class="filter-select"><i class="bx bx-buildings" aria-hidden="true"></i><select id="st-org" aria-label="Organisation"><option value="">All organisations</option></select></label>
+          <label class="filter-select"><i class="bx bx-folder" aria-hidden="true"></i><select id="st-project" aria-label="Project"><option value="">All projects</option></select></label>
+          <div class="seg" role="group" aria-label="Date range" id="st-range">
+            <button type="button" class="seg-btn" data-v="7">7 days</button>
+            <button type="button" class="seg-btn is-on" data-v="30" aria-pressed="true">30 days</button>
+            <button type="button" class="seg-btn" data-v="90">90 days</button>
+            <button type="button" class="seg-btn" data-v="0">All time</button>
+            <button type="button" class="seg-btn" data-v="custom" id="st-custom" aria-haspopup="dialog" aria-expanded="false"><i class="bx bx-calendar icon-14" aria-hidden="true"></i> <span>Custom</span></button>
+          </div>
+          <div id="st-picker" class="dr-pop" hidden></div>
+        </div>
+      </div>
+      <div id="st-body"></div>
+    </main>
+
+    <!-- ===== Projects (all, paginated) ===== -->
+    <main id="view-projects" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Projects <span class="count-badge" id="pj-count"></span></h1>
+          <p class="page-sub">Every project in Claude Recall. Give one a title and it’s shown everywhere instead of the folder name.</p>
+        </div>
+      </div>
+      <div class="list-toolbar">
+        <label class="toolbar-search wide"><i class="bx bx-search" aria-hidden="true"></i><input id="pj-q" placeholder="Search title, folder or path…" aria-label="Search projects" autocomplete="off" /></label>
+        <label class="filter-select"><i class="bx bx-sort-alt-2" aria-hidden="true"></i><select id="pj-sort" aria-label="Sort by">
+          <option value="last">Recently active</option><option value="name">Name</option><option value="messages">Most messages</option>
+          <option value="sessions">Most sessions</option><option value="output">Most output tokens</option><option value="cost">Highest cost</option>
+        </select></label>
+      </div>
+      <div class="table-card">
+        <div class="table-scroll">
+          <table class="ds compact">
+            <thead><tr><th>Project</th><th class="num">Sessions</th><th class="num">Prompts</th><th class="num">Replies</th><th class="num">Images</th><th class="num">Output</th><th class="num">Cache read</th><th class="num" title="API-equivalent cost">Cost</th><th>Active</th><th class="actions">Actions</th></tr></thead>
+            <tbody id="pj-rows"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pj-pager"></div>
+      </div>
+    </main>
+
+    <!-- ===== Accounts ===== -->
+    <main id="view-devices" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Devices</h1>
+          <p class="page-sub">Machines whose hook asked to push transcripts. Nothing is saved from a device until you approve it.</p>
+        </div>
+        <div class="page-actions">
+          <button id="dv-refresh" class="btn btn-header"><i class="bx bx-refresh" aria-hidden="true"></i> Refresh</button>
+          <button id="dv-logout" class="btn btn-header" hidden><i class="bx bx-log-out" aria-hidden="true"></i> Forget admin token</button>
+        </div>
+      </div>
+      <div id="dv-banner"></div>
+      <form id="dv-login" class="card" hidden>
+        <div class="card-pad">
+          <div class="field">
+            <label class="label" for="dv-token">Admin token</label>
+            <input id="dv-token" class="input" type="password" autocomplete="off" placeholder="ADMIN_TOKEN" />
+            <span class="hint">The <span class="mono">ADMIN_TOKEN</span> the server was started with. Kept in this browser tab only.</span>
+          </div>
+          <div class="list-toolbar"><button class="btn btn-custom-primary" type="submit"><i class="bx bx-lock-open-alt" aria-hidden="true"></i> Unlock</button></div>
+        </div>
+      </form>
+      <div id="dv-body"></div>
+    </main>
+
+    <main id="view-accounts" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Accounts</h1>
+          <p class="page-sub">The Claude accounts and organisations your sessions were written with.</p>
+        </div>
+      </div>
+      <div id="ac-banner"></div>
+      <div class="tabs-underline" role="tablist" aria-label="Accounts" id="ac-tabs">
+        <button role="tab" id="ac-tab-users" data-ac-tab="users" aria-controls="ac-body" aria-selected="true" class="active"><i class="bx bx-user icon-16" aria-hidden="true"></i> Users <span class="count" id="ac-count-users">–</span></button>
+        <button role="tab" id="ac-tab-orgs" data-ac-tab="orgs" aria-controls="ac-body" aria-selected="false" tabindex="-1"><i class="bx bx-buildings icon-16" aria-hidden="true"></i> Organisations <span class="count" id="ac-count-orgs">–</span></button>
+      </div>
+      <div id="ac-body" class="tab-panel" role="tabpanel" aria-labelledby="ac-tab-users"></div>
+    </main>
+
+    <!-- ===== Guide ===== -->
+    <main id="view-guide" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Guide</h1>
+          <p class="page-sub">What Claude Recall is, how it works, and where everything lives.</p>
+        </div>
+      </div>
+      <div class="guide">
+        <nav class="card guide-toc" aria-label="Guide sections"><div class="card-pad" id="guide-toc"></div></nav>
+        <div class="guide-body" id="guide-body">
+          <section class="card guide-sec" id="g-what" data-title="What it is">
+            <div class="card-head"><div><h3>What Claude Recall is</h3><p class="card-sub">A personal, searchable memory of your Claude Code conversations.</p></div></div>
+            <div class="card-pad md-prose">
+              <p>While you work with Claude Code you ask questions, give tasks, and Claude explains what it did, what it changed, how to run it and what to watch out for. That explanation is valuable, but it normally stays buried in the chat.</p>
+              <p>Claude Recall keeps all of it. Every prompt you type and every text reply Claude gives is saved, with an embedding, in its own Elasticsearch indices. You can read any old session like a chat, open up to three side by side, and search across everything by meaning or by keyword.</p>
+              <ul>
+                <li><strong>No AI in search.</strong> Search returns the matching records as they were written. Nothing is summarised or rewritten, so you read the original answer.</li>
+                <li><strong>Works for every project.</strong> One global hook covers every folder and session. Nothing is added to your projects.</li>
+                <li><strong>Local by default.</strong> Everything runs on your machine in Docker. Ports listen on 127.0.0.1 only. It can also run as a shared server that several machines push to, each one approved by an admin (see <em>Hooks → A shared server</em>).</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-how" data-title="How it works">
+            <div class="card-head"><div><h3>How it works</h3><p class="card-sub">The hook pushes the new lines; the API queues them; a worker stores them.</p></div></div>
+            <div class="card-pad md-prose">
+<pre><code>Claude Code finishes a reply
+   │  Stop hook (runs on your Mac)
+   ▼
+node scripts/hook.js      marks the session in ~/.claude-recall/pending + who is logged in, starts push.js, exits
+   ▼  (detached, Claude Code never waits)
+node scripts/push.js      reads the new lines after its own read position (~/.claude-recall/state.json)
+   │  POST /api/push  gzip, ≤ 4 MB of complete lines per request   (+ device token on a shared server)
+   ▼
+API (app)  ── checks the range against what it has ── publish job, wait for RabbitMQ's confirm ──▶ 202
+   ▼                                     (already have it → 200 DUPLICATE · a gap → 409 + the offset to resend from)
+RabbitMQ  recall.ingest queue (durable: survives restarts)    retry after 10 s · 3 tries · then the dead-letter queue
+   ▼  fetched by any free worker (2 by default)
+Worker  ── Redis lock on the session (one worker per session at a time)
+   │  writes only the lines after the saved read position (an earlier chunk not written yet → waits 2 s)
+   │  keeps prompts + Claude's text replies, images, token usage (+ cost) · masks secrets
+   ▼
+Ollama (nomic-embed-text) → 768-number embedding per message
+   ▼
+Elasticsearch: claude_chat_log · _images · _usage · _prices · _projects · _users · _orgs · _memberships · _ingest_state · _settings
+   │  read position saved only if nobody else moved it (if_seq_no)
+   ▼  "changed" event (RabbitMQ fanout) → API → browser
+This app: Chats · Search · Projects · Accounts · Stats  (open chats update live)
+
+Local mode (default here): the workers can also read ~/.claude/projects from a read-only mount
+(Sync page, auto-sync, startup catch-up). A shared server runs without the mount.</code></pre>
+              <ol>
+                <li><strong>Claude Code writes a transcript.</strong> It already saves every session as a <code>.jsonl</code> file under <code>~/.claude/projects</code>. Claude Recall never changes these files.</li>
+                <li><strong>The Stop hook pushes the new lines.</strong> After each reply, Claude Code runs <code>scripts/hook.js</code>. It notes the session (and who is logged in) in <code>~/.claude-recall/pending</code> and starts <code>scripts/push.js</code> in the background, which sends the lines added since last time to the server. Details in <em>Hooks</em> below.</li>
+                <li><strong>The API queues a job.</strong> It checks the pushed range against what it already has, publishes a job with the lines to RabbitMQ and answers as soon as RabbitMQ confirms it is saved. If the server is off, the lines simply wait on your machine and go with the next hook.</li>
+                <li><strong>A worker fetches it.</strong> Workers are separate containers (two by default); each takes the next job. Before touching a session it takes that session’s <em>lock</em> in Redis, so two workers never write the same session at once; a worker that finds it locked puts the job back for 2 seconds.</li>
+                <li><strong>The worker writes what is new.</strong> Claude Recall remembers how far each transcript is stored (the read position). Lines it already has are dropped, so a resend never duplicates; if an earlier chunk of the same session is not written yet, the job waits 2 seconds and tries again.</li>
+                <li><strong>Filtering.</strong> It keeps your prompts and Claude's text replies. Tool calls and results, thinking, sub-agent chatter and slash-command plumbing are skipped. Images you paste are kept. Token usage of every API response is recorded, with its API-equivalent cost from the price table.</li>
+                <li><strong>Embedding and indexing.</strong> Each message gets an embedding from the local model and is stored. The read position moves only after Elasticsearch accepts the batch, and only if nobody else moved it in between (a check on the document’s version), so a crash never loses messages and a worker whose lock ran out cannot overwrite newer work.</li>
+                <li><strong>Done, or tried again.</strong> The job is removed from the queue only when it is finished. If the worker crashes, RabbitMQ gives the job to another worker. If it fails, it is tried again after 10 seconds; after 3 tries it goes to the <em>dead-letter queue</em>, shown on the Sync page with a <em>Try again</em> button.</li>
+                <li><strong>Live update.</strong> The worker announces which sessions changed; the API passes it on, and open chats refresh.</li>
+                <li><strong>Catch-up.</strong> If the server was down, the waiting sessions go with the next hook of any session. A session started before the hook was installed: <code>node scripts/push.js --all</code> sends every transcript. In local mode a sync also reads the transcripts from the mount (at startup, on the timer, or from the Sync page); a sync is a job too, one per file, shared by the workers.</li>
+              </ol>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-hooks" data-title="Hooks">
+            <div class="card-head"><div><h3>Hooks</h3><p class="card-sub">What Claude Recall adds to Claude Code, why, and exactly how it runs.</p></div></div>
+            <div class="card-pad md-prose">
+              <p>A <strong>hook</strong> is a command that Claude Code runs on its own when something happens in a session. Hooks live in Claude Code’s settings file or come in a plugin, and apply to every project and every session on the machine, in the CLI and in the desktop app.</p>
+              <p>Claude Recall’s hook comes two ways, with the same code: on this machine, <code>node scripts/install-hook.js</code> adds it to <code>~/.claude/settings.json</code>; on other machines it comes as the <code>string-claude-recall</code> plugin through managed settings (see <em>A shared server</em> below). Both share <code>~/.claude-recall/</code>, so having both still sends everything once.</p>
+
+              <h4>What is set</h4>
+              <p>Claude Recall adds <strong>exactly one hook: a <code>Stop</code> hook</strong>. Nothing else in your settings is changed. No other hook events are used.</p>
+              <table>
+                <thead><tr><th>Event</th><th>When Claude Code fires it</th><th>Used by Claude Recall?</th></tr></thead>
+                <tbody>
+                  <tr><td><code>Stop</code></td><td>Every time Claude finishes a reply (end of a turn)</td><td><strong>Yes</strong>: sends the transcript’s new lines to Claude Recall, and who is logged in</td></tr>
+                  <tr><td><code>UserPromptSubmit</code>, <code>PreToolUse</code>, <code>PostToolUse</code>, <code>SessionStart</code>, …</td><td>On every prompt / tool call / session start</td><td>No. Not needed: the transcript already has everything, and firing on every tool call would only add load</td></tr>
+                </tbody>
+              </table>
+
+              <h4>The exact hook</h4>
+              <p>File: <code>~/.claude/settings.json</code> (or <code>$CLAUDE_CONFIG_DIR/settings.json</code>). The installer writes this entry, with the full path to your <code>node</code> and to this project’s <code>scripts/hook.js</code>:</p>
+<pre><code>{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/usr/local/bin/node\" \"/Users/abhimanyusharma/Documents/codes/nodejs/claude-chat-rag/scripts/hook.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+              <ul>
+                <li><code>type: "command"</code>: Claude Code runs it as a shell command on your Mac (not inside Docker).</li>
+                <li><code>command</code>: absolute paths, so it works whatever your shell’s <code>PATH</code> is.</li>
+                <li><code>timeout: 5</code>: Claude Code gives up on it after 5 seconds. The hook itself does no network at all and exits in a few milliseconds; the sending runs in a separate background process.</li>
+                <li>No <code>matcher</code>: a <code>Stop</code> hook has nothing to match; it runs for every session.</li>
+              </ul>
+
+              <h4>How one run works</h4>
+              <ol>
+                <li><strong>Claude finishes a reply.</strong> Claude Code starts the command and writes a small JSON payload to its standard input, for example:
+<pre><code>{
+  "session_id": "9346042b-d7ae-4815-86fd-91a5c8ec5b15",
+  "transcript_path": "/Users/…/.claude/projects/-Users-…-claude-chat-rag/9346042b-….jsonl",
+  "cwd": "/Users/…/claude-chat-rag",
+  "hook_event_name": "Stop",
+  "stop_hook_active": false
+}</code></pre>
+                </li>
+                <li><strong><code>scripts/hook.js</code> marks the session.</strong> It reads who is logged in from <code>~/.claude.json</code> → <code>oauthAccount</code> (only identity fields: account id, email, display and full name, organisation id, name and type, role and seat tier, plus Claude Code’s install id; no tokens or keys are stored there or sent; on an API key it is <code>{"kind": "api_key"}</code>) and writes <code>~/.claude-recall/pending/&lt;session&gt;.json</code> with the transcript path and that account. Then it starts <code>scripts/push.js</code> detached and exits 0.</li>
+                <li><strong><code>scripts/push.js</code> sends the new lines.</strong> Only one runs at a time (<code>~/.claude-recall/push.lock</code>); a hook that finds it running just leaves its marker, and the running one picks it up. For each marked session it:
+                  <ul>
+                    <li>takes its own read position from <code>~/.claude-recall/state.json</code>; if that file is missing or broken, it asks the server (<code>GET /api/offset</code>) instead;</li>
+                    <li>reads only complete lines after it (an unfinished last line waits for next time), up to 4 MB per request, gzipped, and posts them: <code>POST /api/push</code> with <code>{ slug, session_id, start, end, data }</code>. The last request of a hook carries the account, which tags this turn’s messages;</li>
+                    <li>a single line over 10 MB (a huge pasted image) is skipped: the server is told to move past it;</li>
+                    <li>moves its read position after each accepted request, and removes the marker once the session is done.</li>
+                  </ul>
+                </li>
+                <li><strong>The API checks the range.</strong> It knows how far it has each session (queued, in Redis, or written, in Elasticsearch). Already have it all → <code>200 DUPLICATE</code>. The push starts after that point (a gap: the client lost its state, or the server lost data) → <code>409</code> with the offset to resend from, and push.js resends from there. Otherwise it publishes a job <code>{ type: "push", slug, sessionId, start, end, lines (gzip), account, tenant_id }</code> to <code>recall.ingest</code> as a persistent message, waits for RabbitMQ’s confirm, and answers <code>202</code>.</li>
+                <li><strong>A worker fetches the job</strong> (whichever is free) and:
+                  <ul>
+                    <li>takes the session’s lock in Redis (<code>SET lock:session:… NX PX 30000</code>, renewed every 10 s while it works); if another worker holds it, or an earlier chunk of the session is not written yet, the job goes back to the queue for 2 seconds;</li>
+                    <li>adds or updates the user, the organisation and their membership;</li>
+                    <li>stores the new prompts and replies, images and token usage (with its cost), each stamped with this account; lines it already has are dropped;</li>
+                    <li>links any messages of this session written since the previous hook that were stored without an account;</li>
+                    <li>saves the new read position only if its version is still the one it read (otherwise the job is tried again);</li>
+                    <li>releases the lock, removes the job from the queue (ack), and announces the change so open chats refresh live.</li>
+                  </ul>
+                </li>
+                <li><strong>If the worker fails or dies</strong>, the job is not lost: a crash leaves it unacknowledged, so RabbitMQ hands it to another worker; an error retries it after 10 seconds, up to 3 times, then it waits in the dead-letter queue.</li>
+                <li><strong>The hook exits with code 0</strong> whatever happened. A non-zero exit or output from a Stop hook could make Claude Code show an error or keep going; this one never does. What push.js did is in <code>~/.claude-recall/push.log</code>.</li>
+              </ol>
+
+              <h4>If something is off</h4>
+              <ul>
+                <li><strong>App, RabbitMQ or Docker stopped:</strong> push.js tries 4 times (over ~13 s), then stops and keeps the markers. Claude Code is never affected. The next hook of any session sends everything that waited, with the account it was marked with.</li>
+                <li><strong>No worker running:</strong> jobs wait in the queue (they are saved on disk) and run as soon as a worker starts.</li>
+                <li><strong>Session started before the hook was installed:</strong> Claude Code reads hooks when a session starts, so that session doesn’t run it. <code>node scripts/push.js --all</code> sends it (in local mode, auto-sync stores it too).</li>
+                <li><strong>Excluded project:</strong> the server answers <code>EXCLUDED</code> and push.js asks again at most once an hour. Nothing is lost: once it is included again, everything since its read position is sent.</li>
+                <li><strong>Sent the same lines twice</strong> (a retry, a lost <code>state.json</code>, a job delivered twice): every message keeps its transcript uuid and the read position only moves forward, so nothing is stored twice.</li>
+              </ul>
+
+              <h4>Install, update, remove</h4>
+<pre><code>node scripts/install-hook.js           # add it, or update an older version (the earlier curl one) in place
+node scripts/install-hook.js --remove  # take it out; nothing else in settings.json is touched</code></pre>
+              <p>Every change first saves a copy of your settings as <code>~/.claude/settings.json.bak-&lt;date-time&gt;</code>. Running the installer again when the hook is current changes nothing.</p>
+              <p><strong>Check it:</strong> <code>node scripts/push.js --status</code> shows the server, the device’s approval and how many sessions are waiting. In the app, the Sync page’s live log shows a <code>hook: &lt;project&gt; › &lt;session&gt;</code> line after each Claude reply.</p>
+<pre><code>node scripts/push.js --status   # server, approval, sessions waiting to be sent
+node scripts/push.js --all      # send every transcript under ~/.claude/projects (first sync of a new machine)</code></pre>
+
+              <h4>A shared server (several machines)</h4>
+              <p>A shared server has no transcripts folder: every machine’s hook pushes its own lines. Nobody hands out keys by hand; each machine asks once and an admin approves it.</p>
+              <ol>
+                <li><strong>Start the server</strong> with an enrollment token per organisation (tenant) and an admin token:
+<pre><code>ENROLL_TOKENS=acme:&lt;long random&gt; ADMIN_TOKEN=&lt;long random&gt; \
+  docker compose -f docker-compose.yml -f docker-compose.server.yml up -d</code></pre>
+                  <code>docker-compose.server.yml</code> removes the mount and sets <code>LOCAL_MODE=false</code> and <code>ALLOW_NO_AUTH=false</code>. Put HTTPS (a reverse proxy) in front before opening it to the network.</li>
+                <li><strong>Give every machine the hook as a plugin.</strong> The hook and the pusher are a Claude Code plugin, <code>plugins/string-claude-recall</code>, and this repo is its marketplace (<code>.claude-plugin/marketplace.json</code>, named <code>string-tools</code>). Push the repo (or just <code>.claude-plugin/</code> and <code>plugins/</code>) to the GitHub repo <a href="https://github.com/Sarv/String-Claude-Recall">Sarv/String-Claude-Recall</a> (every employee must be able to read it). Then, as an Owner, paste this into claude.ai → Organization settings → Claude Code → Managed settings (or <code>managed-settings.json</code> via MDM). <code>node scripts/install-hook.js --managed</code> prints it:
+<pre><code>{
+  "extraKnownMarketplaces": {
+    "string-tools": { "source": { "source": "github", "repo": "Sarv/String-Claude-Recall" }, "autoUpdate": true }
+  },
+  "enabledPlugins": { "string-claude-recall@string-tools": true },
+  "env": { "CLAUDE_RECALL_URL": "https://recall.example.com", "CLAUDE_RECALL_ENROLL_TOKEN": "&lt;the token after acme:&gt;" }
+}</code></pre>
+                  Claude Code picks the settings up within an hour, installs and enables the plugin at the next session start, and the employee can’t turn it off. Nobody copies files by hand.
+                  <ul>
+                    <li><strong>Updates:</strong> raise <code>version</code> in <code>plugins/string-claude-recall/.claude-plugin/plugin.json</code> and push. With <code>autoUpdate</code>, every machine updates in its next session.</li>
+                    <li><strong>Repo access:</strong> Claude Code fetches it with each user’s own git login (SSH key, or <code>gh auth login</code> + <code>gh auth setup-git</code>). For users without git access, use claude.ai’s GitHub/GitLab org sync, or host the plugin as a zip (<code>archive</code> source).</li>
+                    <li><strong>Node:</strong> the hook runs <code>node</code>, so every machine needs Node.js 18+ on its PATH (Claude Code’s own installer doesn’t bring it).</li>
+                    <li><strong>First start:</strong> Claude Code may show a security dialog for managed hooks and env. Declining it closes Claude Code.</li>
+                  </ul>
+                </li>
+                <li><strong>First hook on a machine:</strong> push.js makes up a device id and a secret (kept in <code>~/.claude-recall/device.json</code>, readable only by you; the server keeps only the secret’s hash) and sends them with the enrollment token. The server answers <code>APPROVAL_PENDING</code>. Nothing is sent yet; the lines wait on the machine.</li>
+                <li><strong>An admin approves it</strong> on the <em>Devices</em> page (it asks for the <code>ADMIN_TOKEN</code>). Until then every hook gets <code>APPROVAL_PENDING</code>.</li>
+                <li><strong>After approval</strong> the next hook gets a device token (valid <code>TOKEN_TTL_S</code>, a day by default) and sends everything that waited. In the token’s second half the server hands a new one back; an expired one is replaced with the device secret, without a new approval.</li>
+                <li><strong>Rejected</strong> (or an approved device revoked): its tokens stop working at once and the hook gets <code>APPROVAL_REJECTED</code>. It then sends nothing for the sessions it knew; a new Claude Code session on that machine asks for approval again, as a new device.</li>
+              </ol>
+              <p>Device status is kept in Redis (checked on every request) and in Elasticsearch (<code>claude_chat_devices</code>); tokens only in Redis, which is persistent. Every message, image, usage record and read position carries its <code>tenant_id</code>. Tenants are not kept apart in search and stats yet.</p>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-use" data-title="Using the app">
+            <div class="card-head"><div><h3>Using the app</h3><p class="card-sub">What each page is for.</p></div></div>
+            <div class="card-pad md-prose">
+              <table>
+                <thead><tr><th>Page</th><th>What you do there</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Chats</strong></td><td>Expand a project in the sidebar, click a session to read it. <em>Split pane</em> (top bar), the pane icon next to a session, or Ctrl/⌘-click opens up to 3 sessions side by side. Drag the gutter between panes to resize, double-click it to make them equal. With 2–3 panes open, <kbd>←</kbd> / <kbd>→</kbd> move to the pane on the left or right; <kbd>↑</kbd> <kbd>↓</kbd> and Page Up / Down then scroll that pane. Each pane opens at the latest message, follows new messages live, and has jump-to-top / jump-to-latest buttons. The trash icon in a pane header deletes that session.</td></tr>
+                  <tr><td><strong>Search</strong></td><td>Type a question in your own words (Hinglish works). Filter by project and by who said it. <em>Hybrid</em> mixes meaning and keywords, <em>Semantic</em> uses meaning only, <em>Keyword</em> uses exact words only. Claude's replies show the prompt they answered. <em>Open in chat</em> jumps to that message.</td></tr>
+                  <tr><td><strong>Sync</strong></td><td>See every project found in your transcripts, how much is indexed and how much is pending. Sync all, sync selected, or one row. Exclude a project so it is never indexed. Turn auto-sync on or off and set its interval. Delete a project's data. <em>Sync health</em> shows the job queue (jobs waiting, how many workers), Redis, and failed jobs with a <em>Try again</em> button. A live log shows what the workers are doing. On a shared server (no transcripts folder) the sync buttons are off: hooks push the lines.</td></tr>
+                  <tr><td><strong>Projects</strong></td><td>Every project with its sessions, messages, images, tokens and cost. Search by title, folder or path; sort by recent activity, name, messages, sessions, output tokens or cost; 20 per page (10–100). Row actions: the chat icon opens the project’s <em>latest session</em>, the pencil gives the project a <em>title</em> (it then replaces the folder name everywhere: sidebar, chats, search, stats, sync; clear it to go back to the folder name), the trash deletes its data. Stats shows only the 10 most recently active projects and links here.</td></tr>
+                  <tr><td><strong>Devices</strong></td><td>Machines whose hook asked to push (shared server). Each shows who was logged in, the machine, its tenant, its status (waiting / approved / rejected), when it asked and when it was last seen. <em>Approve</em> lets it push; <em>Reject</em> or <em>Revoke</em> stops it at once. Needs the <code>ADMIN_TOKEN</code> when the server has one (kept in this browser tab only).</td></tr>
+                  <tr><td><strong>Accounts</strong></td><td>Two tabs, <em>Users</em> and <em>Organisations</em> (each with its count; <kbd>←</kbd> / <kbd>→</kbd> switch them, and the last one you opened is remembered). Users: who has been logged in, their organisations and role, activity, tokens and cost. Organisations: members, activity, tokens and cost. The chart icon opens Stats filtered to that user or organisation. A note above the tabs says how many older messages aren’t linked to an account.</td></tr>
+                  <tr><td><strong>Stats</strong></td><td>Counters (including API-equivalent cost), messages per day, tokens and cost per day, the hours you work, and tables: recently active projects (top 10), accounts, organisations, models and busiest sessions, each with its cost. Filter by account, organisation, project and date range (7 / 30 / 90 days, all time, or a custom range).</td></tr>
+                  <tr><td><strong>Settings</strong></td><td>Chat text size (default 15 px) and theme, saved in this browser. <em>Model prices</em>: the price table used for cost (input, 5-minute and 1-hour cache write, cache read, output, a higher price for long prompts, fast-mode multiplier). Edit a model, add one, or <em>Add known Claude prices</em> (fills only missing models, never changes a price you entered). A model in use without a price is listed at the top with <em>Add price</em>. Saving recalculates every response’s cost.</td></tr>
+                  <tr><td><strong>Guide</strong></td><td>This page.</td></tr>
+                </tbody>
+              </table>
+              <p>The sidebar button at the top left collapses the sidebar to an icon rail. While a page loads, grey placeholders show its shape. Syncs run quietly in the background and nothing about them appears on other pages. Open chats and sidebar lists update only when their own session gets new messages. The Sync page shows sync health, live progress and the log.</p>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-terms" data-title="Key terms">
+            <div class="card-head"><div><h3>Key terms</h3></div></div>
+            <div class="card-pad md-prose">
+              <table>
+                <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td>Project</td><td>A folder you ran Claude Code in. Claude Code keeps its sessions in <code>~/.claude/projects/&lt;folder path with dashes&gt;/</code>.</td></tr>
+                  <tr><td>Session</td><td>One Claude Code conversation, stored as one <code>&lt;session-id&gt;.jsonl</code> transcript.</td></tr>
+                  <tr><td>Transcript</td><td>The JSONL file Claude Code writes: one JSON object per line (prompts, replies, tool calls, usage…).</td></tr>
+                  <tr><td>Stop hook</td><td>A command Claude Code runs every time it finishes a reply. Ours marks the session and starts the pusher.</td></tr>
+                  <tr><td>Push</td><td><code>scripts/push.js</code> sending a session’s new transcript lines to the server (<code>POST /api/push</code>), up to 4 MB per request, gzipped.</td></tr>
+                  <tr><td>Local mode</td><td>The server can also read <code>~/.claude/projects</code> itself (a read-only mount): Sync page, auto-sync, startup catch-up and backfills. On by default here; off on a shared server (<code>LOCAL_MODE=false</code>).</td></tr>
+                  <tr><td>Tenant</td><td>Who a device pushes for, usually an organisation. Set by the enrollment token it used. Without a token (local) it is <code>local</code>.</td></tr>
+                  <tr><td>Enrollment token</td><td>One per tenant, given to every machine (e.g. in managed settings). It only lets a machine <em>ask</em> to push; an admin still approves each one.</td></tr>
+                  <tr><td>Device</td><td>One machine’s pusher: a device id + a secret it made up. Waiting for approval, approved, or rejected (Devices page).</td></tr>
+                  <tr><td>Device token</td><td>The short-lived key an approved device pushes with. Renewed by the server; kept only in Redis.</td></tr>
+                  <tr><td>Sync</td><td>Local mode: reading transcripts from the mount and indexing whatever is not indexed yet. On the auto-sync timer, at startup, or from the Sync page.</td></tr>
+                  <tr><td>Auto-sync</td><td>The timer-based catch-up (default every 5 min). It also runs once when the app starts. The hook works even when auto-sync is off.</td></tr>
+                  <tr><td>Job queue</td><td>RabbitMQ. The API <em>publishes</em> jobs (a hook, a sync, a backfill, a cost recalculation); workers <em>fetch</em> them. Jobs are saved on disk and removed only when done.</td></tr>
+                  <tr><td>Worker</td><td>A container that fetches jobs and does the work: read transcript, embed, write to Elasticsearch. Run more with <code>WORKERS=n</code>.</td></tr>
+                  <tr><td>Session lock</td><td>A key in Redis (<code>lock:session:&lt;project&gt;/&lt;session&gt;</code>) that a worker holds while it writes a session, so two workers never write it at once. It frees itself 30 s after a crashed worker stops renewing it.</td></tr>
+                  <tr><td>Dead-letter queue</td><td>Jobs that failed 3 times (<code>recall.dlq</code>). They stay until you press <em>Try again</em> on the Sync page.</td></tr>
+                  <tr><td>Read position</td><td>The byte offset up to which a transcript has been indexed. Stored in <code>claude_chat_ingest_state</code> (written) and Redis <code>recv:&lt;project&gt;/&lt;session&gt;</code> (queued). Each machine also keeps its own in <code>~/.claude-recall/state.json</code> (sent).</td></tr>
+                  <tr><td>Pending</td><td>Messages present in transcripts but not indexed yet.</td></tr>
+                  <tr><td>Project title</td><td>A name you give a project (Projects page or Stats). Shown everywhere instead of its folder name. Stored in <code>claude_chat_projects</code>.</td></tr>
+                  <tr><td>Exclude</td><td>A project that is never synced (hook and timer both skip it).</td></tr>
+                  <tr><td>Embedding</td><td>A list of 768 numbers that captures a message's meaning, made by <code>nomic-embed-text</code>. Similar meaning → nearby numbers.</td></tr>
+                  <tr><td>Semantic / keyword / hybrid</td><td>Semantic = nearest embeddings (kNN). Keyword = classic word match (BM25). Hybrid = both lists merged with reciprocal rank fusion (RRF).</td></tr>
+                  <tr><td>Redaction</td><td>API keys, tokens, JWTs, private keys, <code>password=…</code> and credentials in URLs are masked before anything is stored.</td></tr>
+                  <tr><td>Account linking</td><td>Transcripts don’t say who was logged in. The Stop hook reads the current account from <code>~/.claude.json</code> (ids, name, email, organisation, role; no tokens) and Claude Recall stamps it on the messages of that turn. Each message carries its own account, so a session that spans an account switch shows both. History from before linking stays “Not linked”.</td></tr>
+                  <tr><td>Sidechain</td><td>Sub-agent work inside a session. Its messages are not shown, but its token usage is counted.</td></tr>
+                  <tr><td>Input tokens</td><td>New, uncached prompt tokens sent to the model.</td></tr>
+                  <tr><td>Cache write</td><td>Prompt tokens written to the prompt cache (first time a long context is sent). Two kinds with different prices: 5-minute (1.25× input) and 1-hour (2× input). Claude Code mostly writes 1-hour cache.</td></tr>
+                  <tr><td>Cache read</td><td>Prompt tokens served from the cache on later turns. Usually the biggest number, and much cheaper than input.</td></tr>
+                  <tr><td>Output tokens</td><td>Tokens Claude generated, including thinking.</td></tr>
+                  <tr><td>API-equivalent cost</td><td>What the tokens would cost on the Claude API at list prices (USD per million tokens, per model, from Settings → Model prices). On a Claude subscription you are not billed per token, so this is a yardstick, not your bill. Long prompts on Claude Haiku 5.5 (over 100,000 tokens, counting cache) are priced higher as a whole; fast mode multiplies the price (2× on Opus 5.5, Opus 5 and Opus 4.8); US-only inference adds 10%. A dated model id uses the price of the id without the date. Responses of a model with no price are left out and flagged with *. Known prices are Claude API list prices checked 17 Oct 2026; they are added on first start and a price you enter always wins.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-req" data-title="Requirements">
+            <div class="card-head"><div><h3>Requirements</h3></div></div>
+            <div class="card-pad md-prose">
+              <ul>
+                <li><strong>Docker Desktop</strong> with Compose v2. Works on Apple Silicon and Intel.</li>
+                <li><strong>Memory:</strong> about 1.5 GB while idle (Elasticsearch ~1 GB with a 512 MB heap, Ollama ~330 MB, RabbitMQ ~100 MB, Redis ~5 MB, app ~20 MB, each worker ~20 MB).</li>
+                <li><strong>Disk:</strong> about 1 GB for the Docker images, plus ~270 MB for the embedding model, plus the index (a few MB per thousand messages, more if you paste many images).</li>
+                <li><strong>Claude Code</strong> (CLI or desktop app) writing transcripts to <code>~/.claude/projects</code>.</li>
+                <li><strong>Node.js</strong> (18 or newer) on every machine that runs Claude Code: it runs the Stop hook and the pusher after every reply (<code>plugins/string-claude-recall/scripts/</code>; <code>scripts/hook.js</code> and <code>scripts/push.js</code> run the same code), and the hook installer once.</li>
+                <li>Internet on first start to download the Docker images and the model, and for the fonts and icons the design system loads from CDNs.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-ports" data-title="Services and ports">
+            <div class="card-head"><div><h3>Services and ports</h3><p class="card-sub">All bound to 127.0.0.1, so nothing is reachable from your network.</p></div></div>
+            <div class="card-pad md-prose">
+              <table>
+                <thead><tr><th>Service</th><th>Container</th><th>Host port</th><th>Override</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr><td>App + UI</td><td><code>app</code></td><td><a href="http://localhost:4000">4000</a></td><td><code>APP_PORT</code></td><td>Web UI, push endpoint (publishes jobs), device approval, search API, auto-sync timer, live updates</td></tr>
+                  <tr><td>Workers</td><td><code>worker</code> × 2</td><td>none</td><td><code>WORKERS</code>, <code>WORKER_PREFETCH</code></td><td>Fetch jobs: read transcripts, embed, write to Elasticsearch</td></tr>
+                  <tr><td>RabbitMQ 4.1</td><td><code>rabbitmq</code></td><td><a href="http://localhost:15680">15680</a> (management UI)</td><td><code>RABBIT_UI_PORT</code>, <code>RABBIT_PASS</code></td><td>Job queue (login <code>recall</code> / <code>recall</code>)</td></tr>
+                  <tr><td>Redis 7.4</td><td><code>redis</code></td><td>none</td><td></td><td>Session locks, sync progress, queued read positions, device status and tokens. Persistent (append-only file in the <code>redis-data</code> volume)</td></tr>
+                  <tr><td>Elasticsearch 8.19</td><td><code>elasticsearch</code></td><td>9230</td><td><code>ES_PORT</code></td><td>Stores messages, embeddings, images, usage, state</td></tr>
+                  <tr><td>Ollama 0.12</td><td><code>embeddings</code></td><td>11440</td><td><code>EMBED_PORT</code></td><td>Runs <code>nomic-embed-text</code> (change with <code>EMBED_MODEL</code>)</td></tr>
+                </tbody>
+              </table>
+              <p>Inside Docker the app and workers talk to <code>http://elasticsearch:9200</code>, <code>http://embeddings:11434</code>, <code>amqp://rabbitmq:5672</code> and <code>redis://redis:6379</code>. In local mode your transcripts are mounted read-only at <code>/data/projects</code> in the app and the workers.</p>
+              <table>
+                <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td><code>LOCAL_MODE</code></td><td><code>true</code></td><td>Read transcripts from the mount too (Sync page, auto-sync, catch-up, backfills)</td></tr>
+                  <tr><td><code>ALLOW_NO_AUTH</code></td><td><code>true</code></td><td>Pushes without a device token count as tenant <code>local</code>. Only for a server on 127.0.0.1</td></tr>
+                  <tr><td><code>ENROLL_TOKENS</code></td><td>none</td><td><code>tenant:token,tenant2:token2</code>, the tokens machines may ask with</td></tr>
+                  <tr><td><code>ADMIN_TOKEN</code></td><td>none</td><td>Needed on the Devices page (without it, the page is open while <code>ALLOW_NO_AUTH</code> is on)</td></tr>
+                  <tr><td><code>TOKEN_TTL_S</code></td><td><code>86400</code></td><td>Lifetime of a device token</td></tr>
+                  <tr><td><code>CLAUDE_RECALL_URL</code>, <code>CLAUDE_RECALL_ENROLL_TOKEN</code></td><td><code>http://127.0.0.1:4000</code>, none</td><td>On each machine (environment or managed settings): where push.js sends, and the enrollment token</td></tr>
+                </tbody>
+              </table>
+              <h4>Commands</h4>
+<pre><code>docker compose up -d                  # start (also catches up on missed messages)
+docker compose stop                   # stop, keep data
+docker compose logs -f app worker     # follow the API and worker logs
+WORKERS=4 docker compose up -d        # run 4 workers instead of 2
+node scripts/install-hook.js          # add the Stop hook to ~/.claude/settings.json (backs it up first)
+node scripts/install-hook.js --remove # take the hook out again
+node scripts/push.js --all            # send every transcript (first sync of a machine)
+docker compose -f docker-compose.yml -f docker-compose.server.yml up -d   # shared server: no mount, approval needed</code></pre>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-es" data-title="Elasticsearch structure">
+            <div class="card-head"><div><h3>Elasticsearch structure</h3><p class="card-sub">Eleven indices, all prefixed <code>claude_chat_</code>, kept apart from anything else in the cluster.</p></div></div>
+            <div class="card-pad md-prose">
+              <table>
+                <thead><tr><th>Index</th><th>One document per</th><th>Main fields</th></tr></thead>
+                <tbody>
+                  <tr><td><code>claude_chat_log</code></td><td>Prompt or Claude text reply (id = transcript message uuid)</td><td><code>project</code>, <code>project_name</code>, <code>project_path</code>, <code>session_id</code>, <code>role</code> (user / assistant), <code>text</code>, <code>timestamp</code>, <code>seq</code>, <code>prompt_uuid</code> (the prompt a reply answers), <code>git_branch</code>, <code>images</code>, <code>embedding</code> (dense_vector, 768, cosine)</td></tr>
+                  <tr><td><code>claude_chat_images</code></td><td>Image pasted into a prompt</td><td><code>message_id</code>, <code>session_id</code>, <code>project</code>, <code>media_type</code>, <code>timestamp</code>, <code>data</code> (base64, binary)</td></tr>
+                  <tr><td><code>claude_chat_usage</code></td><td>Claude API response (id = API message id, so repeats collapse)</td><td><code>project</code>, <code>session_id</code>, <code>model</code>, <code>timestamp</code>, <code>input</code>, <code>output</code>, <code>cache_write</code> (= <code>cache_write_5m</code> + <code>cache_write_1h</code>), <code>cache_read</code>, <code>speed</code>, <code>geo</code>, <code>cost</code> (USD), <code>sidechain</code></td></tr>
+                  <tr><td><code>claude_chat_ingest_state</code></td><td>Transcript file</td><td><code>file</code>, <code>project</code>, <code>session_id</code>, <code>byte_offset</code> (read position), <code>size</code>, <code>title</code>, <code>cwd</code>, <code>git_branch</code>, <code>last_prompt_uuid</code>, <code>updated_at</code></td></tr>
+                  <tr><td><code>claude_chat_prices</code></td><td>Model price (id = model id)</td><td><code>model</code>, <code>price</code> (input, cache_write_5m, cache_write_1h, cache_read, output, tiers, fast), <code>updated_at</code></td></tr>
+                  <tr><td><code>claude_chat_projects</code></td><td>Project you gave a title (id = project folder slug)</td><td><code>slug</code>, <code>title</code>, <code>updated_at</code></td></tr>
+                  <tr><td><code>claude_chat_users</code></td><td>Claude account (id = account uuid; one shared <code>api-key</code> entry for API-key use)</td><td><code>account_uuid</code>, <code>kind</code>, <code>email</code>, <code>display_name</code>, <code>full_name</code>, <code>account_created_at</code>, <code>billing_type</code>, <code>install_ids</code>, <code>first_seen</code>, <code>last_seen</code></td></tr>
+                  <tr><td><code>claude_chat_orgs</code></td><td>Organisation (id = organisation uuid)</td><td><code>org_uuid</code>, <code>name</code>, <code>type</code>, <code>billing_type</code>, <code>first_seen</code>, <code>last_seen</code></td></tr>
+                  <tr><td><code>claude_chat_memberships</code></td><td>User ↔ organisation link (id = <code>user:org</code>)</td><td><code>user_uuid</code>, <code>org_uuid</code>, <code>org_role</code>, <code>workspace_role</code>, <code>seat_tier</code>, <code>first_seen</code>, <code>last_seen</code></td></tr>
+                  <tr><td><code>claude_chat_devices</code></td><td>Machine that asked to push (id = its device id)</td><td><code>device_id</code>, <code>tenant_id</code>, <code>status</code> (pending / approved / rejected), <code>secret_hash</code>, <code>hostname</code>, <code>email</code>, <code>name</code>, <code>account_uuid</code>, <code>org_uuid</code>, <code>created_at</code>, <code>decided_at</code>, <code>last_seen_at</code></td></tr>
+                  <tr><td><code>claude_chat_settings</code></td><td>One doc: <code>config</code></td><td><code>autoSync</code>, <code>intervalMinutes</code>, <code>excluded</code>, one-time flags (<code>usageBackfilled</code>, <code>usagePriced</code>, <code>imagesBackfilled</code>, <code>pricesSeeded</code>)</td></tr>
+                </tbody>
+              </table>
+              <p>Messages, images and token records carry <code>account_uuid</code> and <code>org_uuid</code>; a session's read-position doc lists every <code>account_uuids</code> / <code>org_uuids</code> seen in it. What a device pushed also carries <code>tenant_id</code>. Every message keeps its transcript uuid as its id, so reading a file again never creates duplicates. A resumed session repeats earlier messages; those collapse into one record that belongs to the newest session.</p>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-data" data-title="Your data and deleting">
+            <div class="card-head"><div><h3>Your data and deleting it</h3></div></div>
+            <div class="card-pad md-prose">
+              <ul>
+                <li>Claude Recall never edits or deletes transcripts: push.js only reads them, and in local mode they are mounted <strong>read-only</strong>.</li>
+                <li><strong>Delete</strong> (pane header or Stats → Busiest sessions for a session; Sync, Projects or Stats for a project) removes Claude Recall's copy only: messages, embeddings, images and token usage. A project title and the price table are kept.</li>
+                <li>The dialog asks what should happen after deleting:
+                  <ul>
+                    <li><strong>Keep it out</strong> (default): the deleted messages won’t come back on the next sync. New messages written later are still saved.</li>
+                    <li><strong>Bring it back on the next sync</strong>: also resets the read position, so the next sync (or, for pushed sessions, the next hook, which is told to resend from the start) rebuilds it from the transcripts. Use this to re-index.</li>
+                    <li><strong>Stop saving this project</strong> (projects only): keeps it out and excludes the project, so nothing new is saved. Include it again on the Sync page.</li>
+                  </ul>
+                </li>
+                <li>Claude Code itself cleans up old transcripts after a while (30 days by default). What is already in Claude Recall stays.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="card guide-sec" id="g-faq" data-title="Troubleshooting">
+            <div class="card-head"><div><h3>Troubleshooting</h3></div></div>
+            <div class="card-pad md-prose">
+              <table>
+                <thead><tr><th>You see</th><th>Why, and what to do</th></tr></thead>
+                <tbody>
+                  <tr><td>A project shows <em>Pending</em></td><td>A session is still running (the hook fires when Claude finishes), or it started before the hook was installed. Press Sync, or wait for auto-sync.</td></tr>
+                  <tr><td>New messages don't appear live</td><td>Check the hook is installed (<code>~/.claude/settings.json</code> → <code>hooks.Stop</code>) and that the session was started after installing it. The status chip should say Ready.</td></tr>
+                  <tr><td>“Last sync never”</td><td>Auto-sync is off, so the startup catch-up was skipped too. Turn it on in Sync, or press Sync all.</td></tr>
+                  <tr><td>Search is slow during a big sync</td><td>The query waits for the embedding model, which is busy embedding the batch. It is quick again once the sync finishes.</td></tr>
+                  <tr><td>“Service unreachable”</td><td>The app container is down: <code>docker compose up -d</code>. Nothing is lost; the next start catches up.</td></tr>
+                  <tr><td>A cost has a <em>*</em>, or Stats says “responses have no price”</td><td>Those responses use a model that is not in the price table (a new model, usually). Open Settings → Model prices: the model is listed at the top; press <em>Add price</em>, or <em>Add known Claude prices</em> if it is a known Claude model. Costs are recalculated when you save.</td></tr>
+                  <tr><td>The cost doesn’t match my bill</td><td>It isn’t a bill. On a Claude subscription you pay a flat fee; the cost shows what the same tokens would cost on the Claude API at list prices. On the API, discounts (Batch) and other platforms’ prices (Bedrock, Google Cloud) are not included.</td></tr>
+                  <tr><td>Sync health shows <em>Failed jobs</em></td><td>A job failed 3 times (often: the embedding model or Elasticsearch was down). The error is listed under it. Fix the cause, then press <em>Try again</em>.</td></tr>
+                  <tr><td>Sync health says “No worker running”</td><td>Jobs wait safely in the queue. Start the workers: <code>docker compose up -d worker</code>.</td></tr>
+                  <tr><td>Nothing arrives from a machine</td><td>Run <code>node scripts/push.js --status</code> there and read <code>~/.claude-recall/push.log</code>. <code>APPROVAL_PENDING</code>: approve it on the Devices page. <code>APPROVAL_REJECTED</code>: it was rejected; a new session asks again. <code>ENROLL_TOKEN_INVALID</code>: the token in managed settings doesn’t match <code>ENROLL_TOKENS</code>. <code>server unreachable</code>: the lines wait and go with the next hook.</td></tr>
+                  <tr><td>A machine’s first sync takes long</td><td>A big history is sent in 4 MB pieces and embedded on the server, about a few minutes per 20 MB. Claude Code is never slowed down; follow it on the Sync page log.</td></tr>
+                  <tr><td>Changed <code>EMBED_MODEL</code> and the app stops</td><td>A model with a different vector size needs a new index. The message names the indices; delete them yourself, then restart to re-index.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== Settings ===== -->
+    <main id="view-settings" class="page view" hidden>
+      <div class="page-header bar">
+        <div class="page-heading">
+          <h1 class="page-title">Settings</h1>
+          <p class="page-sub">How the app looks on this device, and the model prices used for cost.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><h3>Reading</h3><p class="card-sub">Saved in this browser.</p></div></div>
+        <div class="card-pad">
+          <div class="setting-row">
+            <div><div class="sr-title">Chat text size</div><div class="sr-desc">Size of messages in every chat pane. Default is 15 px.</div></div>
+            <div class="seg" role="group" aria-label="Chat text size" id="set-font">
+              <button type="button" class="seg-btn" data-v="13">13</button>
+              <button type="button" class="seg-btn" data-v="14">14</button>
+              <button type="button" class="seg-btn" data-v="15">15</button>
+              <button type="button" class="seg-btn" data-v="16">16</button>
+              <button type="button" class="seg-btn" data-v="17">17</button>
+              <button type="button" class="seg-btn" data-v="18">18</button>
+              <button type="button" class="seg-btn" data-v="20">20</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="sr-title">Theme</div><div class="sr-desc">System follows your computer’s setting.</div></div>
+            <div class="seg" role="group" aria-label="Theme" id="set-theme">
+              <button type="button" class="seg-btn" data-v="light"><i class="bx bx-sun icon-14" aria-hidden="true"></i> Light</button>
+              <button type="button" class="seg-btn" data-v="dark"><i class="bx bx-moon icon-14" aria-hidden="true"></i> Dark</button>
+              <button type="button" class="seg-btn" data-v="system"><i class="bx bx-desktop icon-14" aria-hidden="true"></i> System</button>
+            </div>
+          </div>
+          <div class="setting-row preview-row">
+            <div class="chat-thread font-preview">
+              <div class="chat-row user"><div class="body"><div class="meta"><span class="who-ico" aria-hidden="true"><i class="bx bx-user"></i></span><span class="who-name">You</span><span>Preview</span></div><div class="bubble">Redis cache invalidation kaise kiya tha?</div></div></div>
+              <div class="chat-row"><div class="body"><div class="meta"><span class="who-ico" aria-hidden="true"><i class="bx bx-bot"></i></span><span class="who-name">Claude</span><span>Preview</span></div><div class="bubble md-prose"><p>Writes ke baad <code>cache.del(key)</code> call hota hai, aur TTL 5 minute rakha tha.</p></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card" id="prices-card">
+        <div class="card-head">
+          <div><h3>Model prices</h3><p class="card-sub" id="pr-sub">USD per million tokens. Used for the API-equivalent cost on Stats, Projects and Accounts.</p></div>
+          <div class="row-actions">
+            <button type="button" class="btn btn-sm btn-header" id="pr-known"><i class="bx bx-download" aria-hidden="true"></i> Add known Claude prices</button>
+            <button type="button" class="btn btn-sm btn-custom-primary" id="pr-add"><i class="bx bx-plus" aria-hidden="true"></i> Add model</button>
+          </div>
+        </div>
+        <div id="pr-banner"></div>
+        <div class="table-scroll"><table class="ds compact">
+          <thead><tr><th>Model</th><th class="num">Responses</th><th class="num">Input</th><th class="num" title="5-minute cache write">Cache write 5m</th><th class="num" title="1-hour cache write">Cache write 1h</th><th class="num">Cache read</th><th class="num">Output</th><th>Long prompts</th><th class="num">Fast mode</th><th class="actions"></th></tr></thead>
+          <tbody id="pr-rows"></tbody>
+        </table></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- confirm dialog + toasts (filled by app.js) -->
+<div id="modal-root"></div>
+<div class="toast-stack" id="toasts" aria-live="polite"></div>
+
+<script src="/vendor/marked.js"></script>
+<script src="/vendor/purify.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

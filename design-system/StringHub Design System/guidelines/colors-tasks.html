@@ -1,0 +1,9 @@
+<!-- @dsCard group="Colors" viewport="700x160" name="Task status / priority / type" subtitle="--task-{status,priority,type}-<name>-{ink,bg}" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>body{margin:0;padding:20px;background:var(--surface);font-family:var(--font-sans);color:var(--ink)}
+.sw{display:grid;gap:8px}.s{border-radius:8px;height:56px;border:1px solid rgba(0,0,0,.06)}.n{font-size:11px;font-weight:600;margin-top:6px}.v{font-size:10.5px;color:var(--muted);font-family:var(--font-mono)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.lab{font-size:11px;color:var(--muted);font-family:var(--font-mono);width:150px;flex-shrink:0}</style></head><body>
+<div style="display:grid;gap:10px">
+<div class="row"><span class="lab">status</span><span class="task-pill status backlog">backlog</span><span class="task-pill status unstarted">unstarted</span><span class="task-pill status started">started</span><span class="task-pill status in-progress">in progress</span><span class="task-pill status in-review">in review</span><span class="task-pill status completed">completed</span><span class="task-pill status cancelled">cancelled</span><span class="task-pill status on-hold">on hold</span></div>
+<div class="row"><span class="lab">priority</span><span class="task-pill priority urgent">urgent</span><span class="task-pill priority critical">critical</span><span class="task-pill priority high">high</span><span class="task-pill priority medium">medium</span><span class="task-pill priority low">low</span><span class="task-pill priority none">none</span></div>
+<div class="row"><span class="lab">type</span><span class="task-pill type new">new</span><span class="task-pill type update">update</span><span class="task-pill type bug">bug</span><span class="task-pill type feature">feature</span><span class="task-pill type improvement">improvement</span></div></div></body></html>

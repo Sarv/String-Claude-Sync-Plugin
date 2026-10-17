@@ -1,0 +1,120 @@
+# Kept as claude-chat-rag on purpose: Docker names the data volumes after it, so renaming would start with empty volumes.
+name: claude-chat-rag
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.4
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.ml.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    ports:
+      - "127.0.0.1:${ES_PORT:-9230}:9200"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  embeddings:
+    image: ollama/ollama:0.12.6
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      # lets a search query be embedded while a big sync batch is in flight
+      - OLLAMA_NUM_PARALLEL=2
+    ports:
+      - "127.0.0.1:${EMBED_PORT:-11440}:11434"
+    restart: unless-stopped
+
+  # Job queue: the API publishes, workers fetch. Messages are persistent (survive a restart).
+  rabbitmq:
+    image: rabbitmq:4.1.4-management-alpine
+    hostname: rabbitmq # the node name is part of the data path; keep it fixed so queues survive recreation
+    environment:
+      - RABBITMQ_DEFAULT_USER=recall
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_PASS:-recall}
+    volumes:
+      - rabbit-data:/var/lib/rabbitmq
+    ports:
+      - "127.0.0.1:${RABBIT_UI_PORT:-15680}:15672" # management UI (login recall / RABBIT_PASS)
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  # Per-session locks, what the API has queued per session, device status and device tokens.
+  # Persistent (append-only file): a restart must not log every device out or forget what was queued.
+  redis:
+    image: redis:7.4.2-alpine
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--save", ""]
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # API + UI: answers the hook, publishes jobs, relays worker events to the browser.
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    environment: &env
+      - ES_URL=http://elasticsearch:9200
+      - OLLAMA_URL=http://embeddings:11434
+      - EMBED_MODEL=${EMBED_MODEL:-nomic-embed-text}
+      - RABBIT_URL=amqp://recall:${RABBIT_PASS:-recall}@rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
+      - PROJECTS_DIR=/data/projects
+      - PORT=4000
+      # local mode: also read the transcripts from the mount below (Sync page, catch-up, backfills)
+      - LOCAL_MODE=${LOCAL_MODE:-true}
+      # pushes without a device token count as tenant "local" (fine while the port is bound to 127.0.0.1)
+      - ALLOW_NO_AUTH=${ALLOW_NO_AUTH:-true}
+      - ENROLL_TOKENS=${ENROLL_TOKENS:-}
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-}
+      - TOKEN_TTL_S=${TOKEN_TTL_S:-86400}
+    volumes: &transcripts
+      # Claude Code transcripts, mounted READ-ONLY, for local mode. Nothing here is ever modified.
+      # A shared server runs without it: docker compose -f docker-compose.yml -f docker-compose.server.yml up -d
+      - ${HOME}/.claude/projects:/data/projects:ro
+    ports:
+      - "127.0.0.1:${APP_PORT:-4000}:4000"
+    depends_on: &deps
+      elasticsearch:
+        condition: service_healthy
+      embeddings:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Fetches jobs from the queue: reads transcripts, embeds, writes to Elasticsearch. Scale with WORKERS.
+  worker:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    command: ["node", "src/worker.js"]
+    environment: *env
+    volumes: *transcripts
+    depends_on: *deps
+    deploy:
+      replicas: ${WORKERS:-2}
+    restart: unless-stopped
+
+volumes:
+  es-data:
+  ollama-models:
+  rabbit-data:
+  redis-data:

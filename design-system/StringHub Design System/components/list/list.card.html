@@ -1,0 +1,47 @@
+<!-- @dsCard group="Components" viewport="1200x560" name="List page" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;padding:16px;background:var(--bg)}.lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { PageHeader, Button, HeaderButton, ListToolbar, ViewToggle, StatusToggle, FilterSelect, ToolbarSearch, DateFilterButton, SaveViewButton, BulkBar, ViewCrumb, PersonCell, OrgCell, ChannelChips, WhenCell, RowSettingsButton } = window.StringHubDesignSystem_90e1d8;
+
+const rows = [["AM","Aarav Mehta","Head of Ops","AC","Acme Corp","aarav@acme.io",["Email","Chat Widget","Phone"],2,"25 Sep 2026","10:42 AM"],
+  ["DS","Diya Sharma","Buyer","NW","Northwind","diya@northwind.in",["Email"],0,"24 Sep 2026","06:15 PM"],
+  ["KR","Kabir Rao","","","","kabir@globex.com",["Chat Widget"],1,"22 Sep 2026","09:03 AM"]];
+function App() {
+  const [view, setView] = React.useState("list"); const [st, setSt] = React.useState("active");
+  return <div style={{"--page-gutter":"16px", padding:"16px", margin:"-16px", overflow:"hidden"}}>
+    <PageHeader title="Contacts" subtitle="Manage contacts and track the tickets raised by each." actions={<>
+      <HeaderButton icon="download">Export</HeaderButton><HeaderButton icon="upload">Import CSV</HeaderButton><HeaderButton icon="git-merge">Merge duplicates</HeaderButton>
+      <Button variant="custom-primary" icon="plus">Create Contact</Button></>} />
+    <div style={{height:16}}></div>
+    <ListToolbar>
+      <ViewToggle value={view} onChange={setView} /><StatusToggle value={st} onChange={setSt} />
+      <FilterSelect icon="filter-alt" options={["All","Has company","No company"]} />
+      <ToolbarSearch placeholder="Search name, email, phone…" />
+      <FilterSelect options={["Company: any","Acme","Globex"]} label="Company" />
+      <DateFilterButton label="Created" /><DateFilterButton icon="history" label="Updated" range="01 Sep – 15 Sep" />
+      <SaveViewButton />
+    </ListToolbar>
+    <div className="table-card"><div className="table-scroll"><table className="ds compact">
+      <thead><tr><th className="row-check"><input type="checkbox" className="row-checkbox" aria-label="Select all" /></th><th>Contact</th><th>Company</th><th>Primary Email</th><th>Channels</th><th style={{textAlign:"center"}}>Open</th><th>Last Seen</th><th className="actions">Actions</th></tr></thead>
+      <tbody>{rows.map((r) => <tr key={r[1]}><td className="row-check"><input type="checkbox" className="row-checkbox" aria-label={"Select " + r[1]} /></td>
+        <td><PersonCell initials={r[0]} name={r[1]} sub={r[2]} /></td><td><OrgCell initials={r[3]} name={r[4]} /></td><td><span className="cell-muted-text">{r[5]}</span></td>
+        <td><ChannelChips items={r[6]} /></td><td className={"count-cell" + (r[7] ? " hot" : "")}>{r[7]}</td><td><WhenCell date={r[8]} time={r[9]} /></td><td className="actions"><RowSettingsButton /></td></tr>)}</tbody>
+    </table></div><div className="pagination"><span>Showing 1–20 of 248 results</span><div className="pages"><button disabled>‹</button><button className="active">1</button><button>2</button><button>3</button><button>›</button></div></div></div>
+    <div style={{height:16}}></div>
+    <p className="lbl">Rows checked</p>
+    <ListToolbar><BulkBar count={3} actions={[{label:"Move to company",menu:true},{label:"Set segment",menu:true},{label:"Merge",icon:"git-merge"},{label:"Export",icon:"download"},{label:"Delete",icon:"trash",danger:true}]} /></ListToolbar>
+    <p className="lbl">Saved view edited</p>
+    <ViewCrumb name="VIP customers" />
+    <ListToolbar><ViewToggle value="list" /><StatusToggle value="active" /><ToolbarSearch placeholder="Search name, email, phone…" /><SaveViewButton unsaved /></ListToolbar>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script></body></html>
