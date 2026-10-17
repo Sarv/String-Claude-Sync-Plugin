@@ -1,16 +1,16 @@
 {
   "name": "string-tools",
   "owner": {
-    "name": "Claude Recall"
+    "name": "StringHub"
   },
   "metadata": {
-    "description": "Claude Recall client: the Stop hook that saves Claude Code conversations to a Claude Recall server"
+    "description": "String Claude Recall client: the Stop hook that saves Claude Code conversations to a String Claude Recall server"
   },
   "plugins": [
     {
       "name": "string-claude-recall",
       "source": "./plugins/string-claude-recall",
-      "description": "Sends every Claude Code turn to your Claude Recall server (Stop hook + pusher)"
+      "description": "Sends every Claude Code turn to your String Claude Recall server (Stop hook + pusher)"
     }
   ]
 }
