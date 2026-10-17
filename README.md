@@ -15,8 +15,8 @@ Paste into claude.ai → Organization settings → Claude Code → Managed setti
   },
   "enabledPlugins": { "string-claude-sync-plugin@string-tools": true },
   "env": {
-    "CLAUDE_RECALL_URL": "https://your-server.example.com",
-    "CLAUDE_RECALL_ENROLL_TOKEN": "<your organisation's enrollment token>"
+    "STRING_CLAUDE_SYNC_URL": "https://your-server.example.com",
+    "STRING_CLAUDE_SYNC_ENROLL_TOKEN": "<your organisation's enrollment token>"
   }
 }
 ```
@@ -30,7 +30,7 @@ claude plugin marketplace add Sarv/String-Claude-Sync-Plugin
 claude plugin install string-claude-sync-plugin@string-tools
 ```
 
-Set `CLAUDE_RECALL_URL` (default `http://127.0.0.1:4000`) and, for a shared server, `CLAUDE_RECALL_ENROLL_TOKEN` in the environment or in `~/.claude-recall/config.json` (`{ "url": "…", "enroll_token": "…" }`).
+Set `STRING_CLAUDE_SYNC_URL` (default `http://127.0.0.1:4000`) and, for a shared server, `STRING_CLAUDE_SYNC_ENROLL_TOKEN` in the environment or in `~/.claude-recall/config.json` (`{ "url": "…", "enroll_token": "…" }`).
 
 ## What happens on a machine
 

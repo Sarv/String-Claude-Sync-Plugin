@@ -5,7 +5,7 @@
 //   node scripts/push.js --all      first sync: mark every transcript under ~/.claude/projects, then send
 //   node scripts/push.js --status   server, device approval, pending sessions
 //
-// ~/.claude-recall/ (CLAUDE_RECALL_DIR)
+// ~/.claude-recall/ (STRING_CLAUDE_SYNC_DIR)
 //   pending/<session>.json   one per session with lines to send (written by the hook; removed once sent)
 //   state.json               read position (bytes) per transcript; if lost, the server is asked (GET /api/offset)
 //   device.json              device id + secret, approval status, current token (chmod 600)
@@ -13,7 +13,7 @@
 // (Not the plugin's own folder: that one is replaced on every update. The same folder is shared by the plugin
 // and a hand-installed hook, so both on one machine still make one pusher and one read position.)
 //
-// Server: CLAUDE_RECALL_URL (default http://127.0.0.1:4000). With CLAUDE_RECALL_ENROLL_TOKEN set (e.g. from managed
+// Server: STRING_CLAUDE_SYNC_URL (default http://127.0.0.1:4000). With STRING_CLAUDE_SYNC_ENROLL_TOKEN set (e.g. from managed
 // settings) the device asks to be approved first and then pushes with its own short-lived token.
 const fs = require('fs');
 const os = require('os');
@@ -21,7 +21,9 @@ const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
 
-const DIR = process.env.CLAUDE_RECALL_DIR || path.join(os.homedir(), '.claude-recall');
+// STRING_CLAUDE_SYNC_<NAME>; the older CLAUDE_RECALL_<NAME> still works
+const env = (name) => process.env[`STRING_CLAUDE_SYNC_${name}`] || process.env[`CLAUDE_RECALL_${name}`];
+const DIR = env('DIR') || path.join(os.homedir(), '.claude-recall');
 const PENDING = path.join(DIR, 'pending');
 const STATE = path.join(DIR, 'state.json');
 const DEVICE = path.join(DIR, 'device.json');
@@ -30,7 +32,7 @@ const LOG = path.join(DIR, 'push.log');
 const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
 const CLAUDE_JSON = process.env.CLAUDE_CONFIG_DIR ? path.join(process.env.CLAUDE_CONFIG_DIR, '.claude.json') : path.join(os.homedir(), '.claude.json');
 
-const CHUNK = Number(process.env.CLAUDE_RECALL_CHUNK || 4 * 1024 * 1024); // lines per push, before gzip
+const CHUNK = Number(env('CHUNK') || 4 * 1024 * 1024); // lines per push, before gzip
 const MAX_LINE = 10 * 1024 * 1024; // one line bigger than this (a huge pasted image) is skipped, not sent
 const EXCLUDED_RECHECK_MS = 3600_000;
 
@@ -44,10 +46,10 @@ function writeJson(file, value, mode = 0o600) {
 }
 function config() {
   const file = readJson(path.join(DIR, 'config.json'), {});
-  const port = process.env.CLAUDE_RECALL_PORT || process.env.APP_PORT || 4000;
+  const port = env('PORT') || process.env.APP_PORT || 4000;
   return {
-    url: (process.env.CLAUDE_RECALL_URL || file.url || `http://127.0.0.1:${port}`).replace(/\/+$/, ''),
-    enrollToken: process.env.CLAUDE_RECALL_ENROLL_TOKEN || file.enroll_token || '',
+    url: (env('URL') || file.url || `http://127.0.0.1:${port}`).replace(/\/+$/, ''),
+    enrollToken: env('ENROLL_TOKEN') || file.enroll_token || '',
   };
 }
 function log(msg) {
