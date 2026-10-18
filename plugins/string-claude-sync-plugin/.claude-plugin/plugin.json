@@ -1,6 +1,6 @@
 {
   "name": "string-claude-sync-plugin",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Sends every Claude Code turn to your String Claude Sync server: a Stop hook marks the session, a background pusher sends the new transcript lines. Needs node on PATH; server and enrollment token come from STRING_CLAUDE_SYNC_URL / STRING_CLAUDE_SYNC_ENROLL_TOKEN.",
   "author": {
     "name": "StringHub"

@@ -34,7 +34,7 @@ const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.cl
 const CLAUDE_JSON = process.env.CLAUDE_CONFIG_DIR ? path.join(process.env.CLAUDE_CONFIG_DIR, '.claude.json') : path.join(os.homedir(), '.claude.json');
 
 const CHUNK = Number(env('CHUNK') || 4 * 1024 * 1024); // lines per push, before gzip
-const MAX_LINE = 10 * 1024 * 1024; // one line bigger than this (a huge pasted image) is skipped, not sent
+const MAX_LINE = 10 * 1024 * 1024; // one line bigger than this (a huge pasted image) is skipped, not even read
 const EXCLUDED_RECHECK_MS = 3600_000;
 
 function readJson(file, fallback) {
@@ -255,7 +255,7 @@ function saveRenewed(raw) {
 }
 
 // ---------- reading lines ----------
-/** The next run of complete lines from `start`: { start, end, data } (up to CHUNK), { start, end, skipped } or null. */
+/** The next run of complete lines from `start`: { start, end, data, sizes? } (up to CHUNK), { start, end, skipped } or null. */
 function nextChunk(fd, start, size) {
   if (start >= size) return null;
   const want = Math.min(CHUNK, size - start);
@@ -278,7 +278,39 @@ function nextChunk(fd, start, size) {
     n = fs.readSync(fd, buf, 0, buf.length, start);
     nl = n - 1;
   }
-  return { start, end: start + nl + 1, data: buf.toString('utf8', 0, nl + 1) };
+  return { start, end: start + nl + 1, ...stripImages(buf.toString('utf8', 0, nl + 1)) };
+}
+
+/**
+ * Only the chats are synced: images (pasted ones, screenshots in tool results, anything base64) never leave the
+ * laptop. Each line holding base64 data is sent with that data emptied, still valid JSON. The read position stays
+ * the transcript's own: { data, sizes } where sizes = each line's byte length in the file (only when a line got
+ * shorter; without it every line is as long as in the file).
+ */
+function stripImages(text) {
+  const lines = text.split('\n');
+  lines.pop(); // text ends with \n
+  let changed = false;
+  const sizes = [];
+  const out = lines.map((line) => {
+    sizes.push(Buffer.byteLength(line) + 1);
+    if (!line.includes('"base64"')) return line;
+    let obj;
+    try { obj = JSON.parse(line); } catch { return line; }
+    if (!dropBase64(obj)) return line;
+    changed = true;
+    return JSON.stringify(obj);
+  });
+  return changed ? { data: out.join('\n') + '\n', sizes } : { data: text };
+}
+/** Empties base64 data in place ({ type: 'base64', data } image/document sources, { base64 } file results). */
+function dropBase64(v) {
+  if (!v || typeof v !== 'object') return false;
+  let hit = false;
+  if (v.type === 'base64' && typeof v.data === 'string' && v.data) { v.data = ''; hit = true; }
+  if (typeof v.base64 === 'string' && v.base64) { v.base64 = ''; hit = true; }
+  for (const k in v) if (v[k] && typeof v[k] === 'object' && dropBase64(v[k])) hit = true;
+  return hit;
 }
 
 // ---------- one session ----------
@@ -325,6 +357,7 @@ async function pushSession(cfg, marker, state, headers, again = false) {
         gzip: true, headers: headers(), timeout: 120000,
         body: {
           slug, session_id, start: cur.start, end: cur.end, data: cur.data || '', skipped: !!cur.skipped,
+          ...(cur.sizes ? { sizes: cur.sizes } : {}),
           // the account goes with every push (the server only keeps lines of the company's Claude organisations);
           // on the last push of a Stop hook it also tags this turn's lines
           hook: last && !!marker.hook, account: marker.account || account(), cwd: marker.cwd || null,
@@ -467,4 +500,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { mark, account, run, main, DIR };
+module.exports = { mark, account, run, main, DIR, stripImages };
