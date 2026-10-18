@@ -36,6 +36,8 @@ const CLAUDE_JSON = process.env.CLAUDE_CONFIG_DIR ? path.join(process.env.CLAUDE
 const CHUNK = Number(env('CHUNK') || 4 * 1024 * 1024); // lines per push, before gzip
 const MAX_LINE = 10 * 1024 * 1024; // one line bigger than this (a huge pasted image) is skipped, not even read
 const EXCLUDED_RECHECK_MS = 3600_000;
+const MAX_TRIES = 5; // tries per session per run (a hook re-marking an active session); then the next run
+const MAX_STALLS = 3; // answers in a row that move nothing (409, an ack that does not advance): give up for this run
 
 function readJson(file, fallback) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
@@ -348,9 +350,16 @@ async function pushSession(cfg, marker, state, headers, again = false) {
   const fd = fs.openSync(file, 'r');
   let sent = 0;
   let notAllowedSaid = false;
+  let stalls = 0;
+  let requests = 0;
+  const maxRequests = 2 * Math.ceil(st.size / CHUNK) + 10; // enough to resend the whole file once, whatever the server says
   try {
     let cur = nextChunk(fd, entry.offset, st.size);
     while (cur) {
+      if (stalls >= MAX_STALLS || ++requests > maxRequests) {
+        log(`ERROR ${slug} › ${session_id.slice(0, 8)}: the server's answers do not move the read position (at ${cur.start}); kept for the next run`);
+        return false;
+      }
       const nxt = nextChunk(fd, cur.end, st.size);
       const last = !nxt;
       const r = await callRetry('POST', `${cfg.url}/api/push`, {
@@ -372,11 +381,13 @@ async function pushSession(cfg, marker, state, headers, again = false) {
       if (code === 'QUEUED' || code === 'DUPLICATE' || code === 'ORG_NOT_ALLOWED') {
         if (cur.skipped) log(`${session_id.slice(0, 8)}: skipped one line of ${((cur.end - cur.start) / 1048576).toFixed(1)} MB (too big)`);
         sent += code === 'QUEUED' ? cur.end - cur.start : 0;
+        stalls = r.json.offset > cur.start ? 0 : stalls + 1;
         entry.offset = Math.min(r.json.offset, st.size);
         writeJson(STATE, state);
         cur = entry.offset === cur.end ? nxt : nextChunk(fd, entry.offset, st.size); // the server already had more
       } else if (code === 'OFFSET_MISMATCH') {
         log(`${session_id.slice(0, 8)}: server has ${r.json.offset} bytes, we were at ${cur.start}; resending from there`);
+        stalls++;
         entry.offset = Math.min(r.json.offset, st.size);
         writeJson(STATE, state);
         cur = nextChunk(fd, entry.offset, st.size);
@@ -385,7 +396,7 @@ async function pushSession(cfg, marker, state, headers, again = false) {
         writeJson(STATE, state);
         return true;
       } else {
-        return answer(r, slug, session_id);
+        return answer(r, slug, session_id, cur.sizes);
       }
     }
   } finally {
@@ -395,24 +406,32 @@ async function pushSession(cfg, marker, state, headers, again = false) {
   return true;
 }
 
-/** Any other answer: auth problems stop the run (markers kept); a refused push is logged and kept for later. */
-function answer(r, slug, session_id) {
+/**
+ * Any other answer: auth problems and 429 stop the run (markers kept); any other refusal (400 BAD_RANGE, 413, …) is
+ * logged once and the session is left alone for the rest of this run: its marker stays, the next hook tries again.
+ */
+function answer(r, slug, session_id, sizes = null) {
   const code = r.json.code || r.json.error || '';
   if (r.status === 401 && /TOKEN_INVALID/.test(code)) { const e = new Stop('token expired'); e.refresh = true; throw e; }
   if (r.status === 401 || r.status === 403) throw new Stop(`${code || r.status}`);
-  log(`ERROR ${slug} › ${session_id.slice(0, 8)}: ${r.status} ${code} ${r.json.reason || ''}`.trim());
+  if (r.status === 429) throw new Stop(`server busy: 429 ${code}`.trim());
+  // a server from before 2026-10-18 (commit 48d6272) does not know `sizes`: lines with images cannot go there
+  const old = r.status === 400 && code === 'BAD_RANGE' && sizes ? ' (lines with images need a server from 2026-10-18 or later, String Claude Sync commit 48d6272)' : '';
+  log(`ERROR ${slug} › ${session_id.slice(0, 8)}: ${r.status} ${code} ${r.json.reason || ''}`.trim() + `${old}; kept for the next run`);
   return false;
 }
 
 // ---------- run ----------
-async function drain(cfg) {
+/** Sends what is marked. `tries` (id → count) lives for the whole run: a session that failed, or was tried
+ *  MAX_TRIES times, is not tried again until the next run, so no server answer can make the pusher spin. */
+async function drain(cfg, tries) {
   const state = readJson(STATE, null);
   const st = state && typeof state.files === 'object' ? state : { version: 1, files: {} };
   if (state === null && fs.existsSync(STATE)) log('state.json unreadable: asking the server for each read position');
   let hdr = {};
   const headers = () => hdr;
   for (let round = 0; ; round++) {
-    const ids = markerIds();
+    const ids = markerIds().filter((id) => (tries.get(id) || 0) < MAX_TRIES);
     if (!ids.length) return;
     hdr = await authHeaders(cfg);
     let progressed = false;
@@ -420,6 +439,7 @@ async function drain(cfg) {
       const file = path.join(PENDING, `${id}.json`);
       const work = `${file}.work`;
       try { fs.renameSync(file, work); } catch { continue; } // a newer hook may re-create `file` meanwhile
+      tries.set(id, (tries.get(id) || 0) + 1);
       const marker = readJson(work, null);
       let ok = false;
       try {
@@ -435,8 +455,11 @@ async function drain(cfg) {
         }
       }
       if (ok) { fs.rmSync(work, { force: true }); progressed = true; }
-      else if (!fs.existsSync(file)) fs.renameSync(work, file);
-      else fs.rmSync(work, { force: true });
+      else {
+        tries.set(id, MAX_TRIES); // refused: not again this run
+        if (!fs.existsSync(file)) fs.renameSync(work, file);
+        else fs.rmSync(work, { force: true });
+      }
     }
     if (!progressed) return; // what is left failed this time; the next hook tries again
   }
@@ -444,10 +467,12 @@ async function drain(cfg) {
 
 async function run() {
   const cfg = config();
+  const tries = new Map();
+  const left = () => markerIds().filter((id) => (tries.get(id) || 0) < MAX_TRIES);
   for (;;) {
     if (!takeLock()) return; // another pusher is at it; it picks up our marker too
     try {
-      await drain(cfg);
+      await drain(cfg, tries);
     } catch (e) {
       if (!(e instanceof Stop)) throw e;
       log(e.message);
@@ -456,7 +481,8 @@ async function run() {
       dropLock();
     }
     // a hook may have marked a session after our last look and found the lock taken: look once more
-    if (!markerIds().length) return;
+    // (only sessions this run has not given up on: the rest wait for the next hook)
+    if (!left().length) return;
   }
 }
 
