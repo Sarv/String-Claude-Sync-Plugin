@@ -1,50 +1,105 @@
 # String Claude Sync plugin
 
-The Claude Code plugin for **String Claude Sync**. After every Claude reply its Stop hook sends the new lines of the session's transcript to your String Claude Sync server, together with the Claude account that is logged in. Claude Code is never slowed down: the hook exits in milliseconds and a background process does the sending.
+The Claude Code plugin for **String Claude Sync**, a StringHub service. After every Claude reply it sends the new part of the conversation to your String Claude Sync server, together with the Claude account that is logged in. Claude Code is never slowed down: the plugin's hook finishes in milliseconds and a background process does the sending.
 
-This repo holds only the plugin. It is published from the server repo (private) with `scripts/publish-plugin.sh`; change it there.
+This repo holds only the plugin. It is published from the (private) server repo; make changes there.
 
-## Install for everyone (managed settings)
+- Plugin: `string-claude-sync-plugin`
+- Marketplace: `string-tools` (this repo, `Sarv/String-Claude-Sync-Plugin`)
 
-Paste into claude.ai → Organization settings → Claude Code → Managed settings (Teams / Enterprise), or into `managed-settings.json`:
+## What the plugin needs
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "string-tools": { "source": { "source": "github", "repo": "Sarv/String-Claude-Sync-Plugin" }, "autoUpdate": true }
-  },
-  "enabledPlugins": { "string-claude-sync-plugin@string-tools": true },
-  "env": {
-    "STRING_CLAUDE_SYNC_URL": "https://your-server.example.com",
-    "STRING_CLAUDE_SYNC_ENROLL_TOKEN": "<your organisation's enrollment token>"
-  }
-}
-```
+Two settings (environment variables), given to it by Claude Code:
 
-Claude Code installs the plugin at the next session start and keeps it updated.
+| Setting | What it is | If it is not set |
+|---|---|---|
+| `STRING_CLAUDE_SYNC_URL` | The address of your String Claude Sync server, e.g. `https://sync.stringhub.com` | The URL in this plugin's `defaults.json`; if that is empty, `http://127.0.0.1:4000` |
+| `STRING_CLAUDE_SYNC_ENROLL_TOKEN` | Your company's **enrollment token** (`scs_…`). Your company admin generates it in String Claude Sync, on the **Company** page | The server refuses the laptop (`TOKEN_REQUIRED`) |
 
-The server URL is taken from the first of: `STRING_CLAUDE_SYNC_URL` (managed settings, which users can't override, or the environment), the plugin's `defaults.json` (the URL most machines use, set once in git), `http://127.0.0.1:4000`. So managed settings only need the URL when it differs. The enrollment token has no default: it is per organisation.
+The URL is taken from the first of: `STRING_CLAUDE_SYNC_URL` (from your organisation's managed settings, which can't be overridden on the laptop, or from your own Claude Code settings), then `defaults.json`, then `http://127.0.0.1:4000`.
 
-## Install on one machine
+**Only your company's Claude organisations:** the server stores only conversations of a Claude account of one of the Claude organisations your company has listed in String Claude Sync. A laptop logged in to another organisation (for example a personal account) can't join, or, if already approved, its conversations of that account are not stored.
 
-```bash
-claude plugin marketplace add Sarv/String-Claude-Sync-Plugin
-claude plugin install string-claude-sync-plugin@string-tools
-```
+**About the enrollment token:** every company has its own (an individual user is a one-person company). It only lets a laptop *ask* to join; the company admin still approves each laptop on the **Devices** page. Keep it private: don't share it or put it in a repo.
 
-Set `STRING_CLAUDE_SYNC_URL` (default `http://127.0.0.1:4000`) and, for a shared server, `STRING_CLAUDE_SYNC_ENROLL_TOKEN` in the `env` block of `~/.claude/settings.json` (e.g. someone using it without an organisation).
+## Case 1: you are in an organisation (Claude for Teams or Enterprise)
 
-## What happens on a machine
+Your company admin does this once; employees do nothing. (StringHub creates your company's account and sends the admin a login.)
 
-1. The first reply asks the server to let this machine push (`APPROVAL_PENDING`). An admin approves it on the server's Devices page. Until then nothing is sent; the lines wait on the machine.
-2. After approval every reply's new lines are sent (gzip, up to 4 MB per request). If the server is down they wait and go with the next reply.
-3. Rejected: nothing more is sent for those sessions; a new Claude Code session asks again.
+1. Log in to String Claude Sync, open **Company → Generate token**, and press **Copy settings**. The block already contains your token and the server's address.
+2. Open **claude.ai → Organization settings → Claude Code → Managed settings** (you need the Owner role in Claude) and paste it. It looks like this:
+   ```json
+   {
+     "extraKnownMarketplaces": {
+       "string-tools": {
+         "source": { "source": "github", "repo": "Sarv/String-Claude-Sync-Plugin" },
+         "autoUpdate": true
+       }
+     },
+     "enabledPlugins": { "string-claude-sync-plugin@string-tools": true },
+     "env": {
+       "STRING_CLAUDE_SYNC_URL": "https://sync.stringhub.com",
+       "STRING_CLAUDE_SYNC_ENROLL_TOKEN": "<your organisation's enrollment token>"
+     }
+   }
+   ```
+   - `extraKnownMarketplaces`: where Claude Code finds the plugin (this repo).
+   - `enabledPlugins`: turns the plugin on for everyone. Employees can't turn it off.
+   - `autoUpdate`: new plugin versions arrive by themselves.
+   - `env`: the two settings. Leave out the URL line if it is the default.
+3. Within about an hour Claude Code picks up the settings, and installs the plugin in each employee's next session. Claude Code may ask them once to allow the organisation's settings; declining closes Claude Code.
+4. After an employee's first reply, their laptop appears on your **Devices** page as *Waiting for approval*. Approve it, and everything that waited is sent. Nothing is lost while waiting.
+5. Optional: add employees under **Company → Users** (with their Claude account email) so they can log in and see their own conversations.
 
-Everything it keeps is in `~/.string-claude-sync/` (waiting sessions, read positions, the device id and token, `push.log`). It only reads Claude Code's transcripts, never changes them.
+## Case 2: you are an individual user (no organisation, e.g. Claude Pro or Max)
 
-To see what it is doing, run the plugin's `scripts/push.js --status` (Claude Code keeps the plugin under `~/.claude/plugins/`), or read `~/.string-claude-sync/push.log`.
+You set it up yourself, once.
+
+1. StringHub creates a one-person company for you (it needs your Claude account's organisation id: `~/.claude.json` → `oauthAccount.organizationUuid`) and sends you a login. Log in, open **Company → Generate token**, and copy the token.
+2. Install the plugin, in a terminal:
+   ```bash
+   claude plugin marketplace add Sarv/String-Claude-Sync-Plugin
+   claude plugin install string-claude-sync-plugin@string-tools
+   ```
+   Or inside Claude Code: `/plugin marketplace add Sarv/String-Claude-Sync-Plugin`, then `/plugin install string-claude-sync-plugin@string-tools`.
+3. Open your Claude Code settings file: `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`). Create it if it doesn't exist. Add the two settings in an `"env"` block:
+   ```json
+   {
+     "env": {
+       "STRING_CLAUDE_SYNC_URL": "https://sync.stringhub.com",
+       "STRING_CLAUDE_SYNC_ENROLL_TOKEN": "<your enrollment token>"
+     }
+   }
+   ```
+   If the file already has content, put the `"env"` part inside its outer `{ }` (with a comma after the part before it). If it already has an `"env"`, add just the two lines to it. Leave out the URL line if it is the default.
+4. Start a new Claude Code session and send a message. Your laptop appears on your **Devices** page; approve it. From then on every reply is sent.
+5. Updates: open `/plugin` in Claude Code, where you can update the plugin or turn on auto-update for the `string-tools` marketplace.
 
 ## Requirements
 
-- Node.js 18 or newer on `PATH` (Claude Code's own installer doesn't bring it).
-- Claude Code with plugin support.
+- **Node.js 18 or newer**, so that `node` works in a terminal. Claude Code's own installer doesn't include it.
+- A Claude Code version with plugin support.
+
+## What happens on your laptop
+
+Everything the plugin keeps is in the folder `~/.string-claude-sync/`:
+
+| File | What it is |
+|---|---|
+| `pending/` | Sessions with new lines still to send (they wait here while the server is down or the laptop isn't approved yet) |
+| `state.json` | How far each conversation has been sent |
+| `device.json` | This laptop's id, secret and current token (readable only by you) |
+| `push.log` | What the plugin did. The last lines usually explain a problem |
+
+The plugin only reads Claude Code's conversation files; it never changes them.
+
+| Message in `push.log` | Meaning | What to do |
+|---|---|---|
+| `APPROVAL_PENDING` | Your laptop asked; it isn't approved yet. Your conversations wait on the laptop. | Your company admin approves it on Devices |
+| `device approved: pushing` | Approved; sending | Nothing |
+| `APPROVAL_REJECTED` | Your laptop was rejected or revoked | Ask the admin; a new Claude Code session asks again |
+| `ENROLL_TOKEN_INVALID` | The enrollment token is wrong or old (a newer one was generated) | Use the current token |
+| `ORG_NOT_ALLOWED` | The Claude account logged in here is of another Claude organisation; nothing of it is stored | Log in to Claude with your company account, or ask your company admin to add the organisation |
+| `COMPANY_DISABLED` | Your company's account is switched off | Contact StringHub |
+| `TOKEN_REQUIRED` | No enrollment token is set | Set `STRING_CLAUDE_SYNC_ENROLL_TOKEN` (see above) |
+| `server unreachable` | Wrong URL, no network, or the server is down | Nothing is lost; it is sent with a later reply |

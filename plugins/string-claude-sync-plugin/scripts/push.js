@@ -218,6 +218,9 @@ async function authHeaders(cfg, { refresh = false } = {}) {
     }
     if (r.json.code === 'APPROVAL_REJECTED') return rejected(dev);
     fs.rmSync(DEVICE, { force: true }); // e.g. ENROLL_TOKEN_INVALID: try again from scratch next time
+    if (r.json.code === 'ORG_NOT_ALLOWED') {
+      throw new Stop(`ORG_NOT_ALLOWED: the Claude account logged in here (organisation ${r.json.org_uuid || 'none'}) is not of this company's Claude organisations`);
+    }
     throw new Stop(`enrollment refused: ${r.status} ${r.json.code || r.json.error || ''}`);
   }
   if (!refresh && dev.token && Date.parse(dev.expires_at) > Date.now() + 60000) return { Authorization: `Bearer ${dev.token}` };
@@ -312,6 +315,7 @@ async function pushSession(cfg, marker, state, headers, again = false) {
 
   const fd = fs.openSync(file, 'r');
   let sent = 0;
+  let notAllowedSaid = false;
   try {
     let cur = nextChunk(fd, entry.offset, st.size);
     while (cur) {
@@ -321,13 +325,18 @@ async function pushSession(cfg, marker, state, headers, again = false) {
         gzip: true, headers: headers(), timeout: 120000,
         body: {
           slug, session_id, start: cur.start, end: cur.end, data: cur.data || '', skipped: !!cur.skipped,
-          // the account goes with the last push of a Stop hook: it tags this turn's lines
-          hook: last && !!marker.hook, account: last && marker.hook ? marker.account : null, cwd: marker.cwd || null,
+          // the account goes with every push (the server only keeps lines of the company's Claude organisations);
+          // on the last push of a Stop hook it also tags this turn's lines
+          hook: last && !!marker.hook, account: marker.account || account(), cwd: marker.cwd || null,
         },
       });
       saveRenewed(r.renewed);
       const code = r.json.code;
-      if (code === 'QUEUED' || code === 'DUPLICATE') {
+      if (code === 'ORG_NOT_ALLOWED' && !notAllowedSaid) {
+        notAllowedSaid = true;
+        log(`${session_id.slice(0, 8)}: not saved: the Claude account here (organisation ${r.json.org_uuid || 'none'}) is not of this company's Claude organisations`);
+      }
+      if (code === 'QUEUED' || code === 'DUPLICATE' || code === 'ORG_NOT_ALLOWED') {
         if (cur.skipped) log(`${session_id.slice(0, 8)}: skipped one line of ${((cur.end - cur.start) / 1048576).toFixed(1)} MB (too big)`);
         sent += code === 'QUEUED' ? cur.end - cur.start : 0;
         entry.offset = Math.min(r.json.offset, st.size);
@@ -421,6 +430,7 @@ async function run() {
 function markAll() {
   const root = path.join(CLAUDE_DIR, 'projects');
   const state = readJson(STATE, { files: {} });
+  const acct = account(); // whoever is logged in now: the server checks its Claude organisation
   let n = 0;
   for (const d of fs.readdirSync(root, { withFileTypes: true })) {
     if (!d.isDirectory()) continue;
@@ -430,7 +440,7 @@ function markAll() {
       if (fs.statSync(full).size === state.files?.[full]?.offset) continue;
       const id = f.slice(0, -6);
       if (fs.existsSync(path.join(PENDING, `${safeName(id)}.json`))) continue; // a hook's marker (with its account) wins
-      mark({ session_id: id, transcript_path: full });
+      mark({ session_id: id, transcript_path: full, account: acct });
       n++;
     }
   }
