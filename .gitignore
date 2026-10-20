@@ -1,4 +1,4 @@
-# String Claude Sync plugin (published from Sarv/String-Claude-Sync by scripts/publish-plugin.sh)
+# String Cortex plugin (published from Sarv/String-Claude-Sync by scripts/publish-plugin.sh)
 
 # the plugin has no dependencies; never commit any
 node_modules/

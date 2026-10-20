@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// String Claude Sync pusher: sends new transcript lines to the server (POST /api/push). Started by the Stop hook
+// String Cortex pusher: sends new transcript lines to the server (POST /api/push). Started by the Stop hook
 // (detached, so Claude Code never waits), or by hand (in this repo, scripts/push.js runs this file):
 //   node scripts/push.js            send what the hooks have marked
 //   node scripts/push.js --all      first sync: mark every transcript under ~/.claude/projects, then send
@@ -24,7 +24,7 @@ const crypto = require('crypto');
 // STRING_CLAUDE_SYNC_<NAME>; the older CLAUDE_RECALL_<NAME> still works
 const env = (name) => process.env[`STRING_CLAUDE_SYNC_${name}`] || process.env[`CLAUDE_RECALL_${name}`];
 const DIR = env('DIR') || path.join(os.homedir(), '.string-claude-sync');
-const OLD_DIR = path.join(os.homedir(), '.claude-recall'); // its name before String Claude Sync
+const OLD_DIR = path.join(os.homedir(), '.claude-recall'); // its name before String Cortex
 const PENDING = path.join(DIR, 'pending');
 const STATE = path.join(DIR, 'state.json');
 const DEVICE = path.join(DIR, 'device.json');
@@ -416,7 +416,7 @@ function answer(r, slug, session_id, sizes = null) {
   if (r.status === 401 || r.status === 403) throw new Stop(`${code || r.status}`);
   if (r.status === 429) throw new Stop(`server busy: 429 ${code}`.trim());
   // a server from before 2026-10-18 (commit 48d6272) does not know `sizes`: lines with images cannot go there
-  const old = r.status === 400 && code === 'BAD_RANGE' && sizes ? ' (lines with images need a server from 2026-10-18 or later, String Claude Sync commit 48d6272)' : '';
+  const old = r.status === 400 && code === 'BAD_RANGE' && sizes ? ' (lines with images need a server from 2026-10-18 or later, String Cortex commit 48d6272)' : '';
   log(`ERROR ${slug} › ${session_id.slice(0, 8)}: ${r.status} ${code} ${r.json.reason || ''}`.trim() + `${old}; kept for the next run`);
   return false;
 }

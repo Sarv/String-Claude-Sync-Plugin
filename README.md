@@ -1,6 +1,6 @@
-# String Claude Sync plugin
+# String Cortex plugin
 
-The Claude Code plugin for **String Claude Sync**, a StringHub service. After every Claude reply it sends the new part of the conversation to your String Claude Sync server, together with the Claude account that is logged in. Claude Code is never slowed down: the plugin's hook finishes in milliseconds and a background process does the sending.
+The Claude Code plugin for **String Cortex**, a StringHub service. After every Claude reply it sends the new part of the conversation to your String Cortex server, together with the Claude account that is logged in. Claude Code is never slowed down: the plugin's hook finishes in milliseconds and a background process does the sending.
 
 This repo holds only the plugin. It is published from the (private) server repo; make changes there.
 
@@ -13,12 +13,12 @@ Two settings (environment variables), given to it by Claude Code:
 
 | Setting | What it is | If it is not set |
 |---|---|---|
-| `STRING_CLAUDE_SYNC_URL` | The address of your String Claude Sync server, e.g. `https://sync.stringhub.com` | The URL in this plugin's `defaults.json`; if that is empty, `http://127.0.0.1:4000` |
-| `STRING_CLAUDE_SYNC_ENROLL_TOKEN` | Your company's **enrollment token** (`scs_…`). Your company admin generates it in String Claude Sync, on the **Company** page | The server refuses the laptop (`TOKEN_REQUIRED`) |
+| `STRING_CLAUDE_SYNC_URL` | The address of your String Cortex server, e.g. `https://cortex.stringhub.com` | The URL in this plugin's `defaults.json`; if that is empty, `http://127.0.0.1:4000` |
+| `STRING_CLAUDE_SYNC_ENROLL_TOKEN` | Your company's **enrollment token** (`scs_…`). Your company admin generates it in String Cortex, on the **Company** page | The server refuses the laptop (`TOKEN_REQUIRED`) |
 
 The URL is taken from the first of: `STRING_CLAUDE_SYNC_URL` (from your organisation's managed settings, which can't be overridden on the laptop, or from your own Claude Code settings), then `defaults.json`, then `http://127.0.0.1:4000`.
 
-**Only your company's Claude organisations:** the server stores only conversations of a Claude account of one of the Claude organisations your company has listed in String Claude Sync. A laptop logged in to another organisation (for example a personal account) can't join, or, if already approved, its conversations of that account are not stored.
+**Only your company's Claude organisations:** the server stores only conversations of a Claude account of one of the Claude organisations your company has listed in String Cortex. A laptop logged in to another organisation (for example a personal account) can't join, or, if already approved, its conversations of that account are not stored.
 
 **About the enrollment token:** every company has its own (an individual user is a one-person company). It only lets a laptop *ask* to join; the company admin still approves each laptop on the **Devices** page. Keep it private: don't share it or put it in a repo.
 
@@ -26,7 +26,7 @@ The URL is taken from the first of: `STRING_CLAUDE_SYNC_URL` (from your organisa
 
 Your company admin does this once; employees do nothing. (StringHub creates your company's account and sends the admin a login.)
 
-1. Log in to String Claude Sync, open **Company → Generate token**, and press **Copy settings**. The block already contains your token and the server's address.
+1. Log in to String Cortex, open **Company → Generate token**, and press **Copy settings**. The block already contains your token and the server's address.
 2. Open **claude.ai → Organization settings → Claude Code → Managed settings** (you need the Owner role in Claude) and paste it. It looks like this:
    ```json
    {
@@ -38,7 +38,7 @@ Your company admin does this once; employees do nothing. (StringHub creates your
      },
      "enabledPlugins": { "string-claude-sync-plugin@string-tools": true },
      "env": {
-       "STRING_CLAUDE_SYNC_URL": "https://sync.stringhub.com",
+       "STRING_CLAUDE_SYNC_URL": "https://cortex.stringhub.com",
        "STRING_CLAUDE_SYNC_ENROLL_TOKEN": "<your organisation's enrollment token>"
      }
    }
@@ -66,7 +66,7 @@ You set it up yourself, once.
    ```json
    {
      "env": {
-       "STRING_CLAUDE_SYNC_URL": "https://sync.stringhub.com",
+       "STRING_CLAUDE_SYNC_URL": "https://cortex.stringhub.com",
        "STRING_CLAUDE_SYNC_ENROLL_TOKEN": "<your enrollment token>"
      }
    }
