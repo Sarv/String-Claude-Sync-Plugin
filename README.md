@@ -1,11 +1,42 @@
 # String Cortex plugin
 
+> **This is the `beta` branch (1.9.0-beta.1).** The plugin does nothing on a laptop unless the file
+> `~/Downloads/cortex-beta-plugin.txt` exists; there it signs in with the person's own String Cortex token and asks
+> each folder's workspace and project (`/cortex`). Marketplace `string-tools-beta`. The live plugin is on `main`.
+
 The Claude Code plugin for **String Cortex**, a StringHub service. After every Claude reply it sends the new part of the conversation to your String Cortex server, together with the Claude account that is logged in. Claude Code is never slowed down: the plugin's hook finishes in milliseconds and a background process does the sending.
 
 This repo holds only the plugin. It is published from the (private) server repo; make changes there.
 
 - Plugin: `string-claude-sync-plugin`
 - Marketplace: `string-tools` (this repo, `Sarv/String-Claude-Sync-Plugin`)
+
+## Coming: your own Claude Code token (String Cortex on StringHub)
+
+Version 1.8.0 runs the plugin as before on every laptop (the setup below). A laptop with the file
+`~/.string-claude-sync/next.json` also runs the new sign-in, for testing it before it goes live:
+
+```json
+{ "url": "https://your-test-cortex.example.com" }
+```
+
+On that laptop:
+
+1. In String Cortex, open your avatar → **Claude Code token**, press **Generate token** and copy it.
+2. In Claude Code, logged in with your company's Claude account, send any message: a form opens for the token. It
+   goes to the plugin, not to Claude, and is kept on this laptop for that Claude account
+   (`~/.string-claude-sync-next/identities/…`). In an app without the form, send the token as a message on its own;
+   the plugin takes it before it reaches Claude. Another Claude account (a second company, say) gets its own token
+   the same way; its conversations go only with it.
+3. The first time you work in a new folder (a git repository, or a folder), Claude asks which of your workspaces it
+   is for, as options. It doesn't ask again for that folder or its subfolders; ask Claude to change it any time.
+
+Conversations are sent only for turns the plugin saw start and end with the same Claude account; older history, and a
+turn where the account was switched, stay on the laptop for now.
+
+Delete `next.json` to go back. The plugin's tools for Claude (`connect_cortex`, `cortex_workspaces`,
+`set_cortex_workspace`) exist only on such a laptop. To skip their permission question, an organisation can add
+`"permissions": { "allow": ["mcp__plugin_string-claude-sync-plugin_cortex"] }` to its managed settings.
 
 ## What the plugin needs
 
@@ -89,6 +120,8 @@ Everything the plugin keeps is in the folder `~/.string-claude-sync/`:
 | `pending/` | Sessions with new lines still to send (they wait here while the server is down or the laptop isn't approved yet) |
 | `state.json` | How far each conversation has been sent |
 | `device.json` | This laptop's id, secret and current token (readable only by you) |
+| `token.json` | Your own Claude Code token, with your name, organisation and workspaces (readable only by you) |
+| `folders.json` | Each folder's workspace, as you chose it |
 | `push.log` | What the plugin did. The last lines usually explain a problem |
 
 The plugin only reads Claude Code's conversation files; it never changes them.

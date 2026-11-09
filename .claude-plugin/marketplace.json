@@ -1,10 +1,10 @@
 {
-  "name": "string-tools",
+  "name": "string-tools-beta",
   "owner": {
     "name": "StringHub"
   },
   "metadata": {
-    "description": "String Cortex client: the Stop hook that saves Claude Code conversations to a String Cortex server"
+    "description": "String Cortex client, BETA build (branch beta): off unless ~/Downloads/cortex-beta-plugin.txt exists"
   },
   "plugins": [
     {

@@ -1,7 +1,7 @@
 {
   "name": "string-claude-sync-plugin",
-  "version": "1.5.3",
-  "description": "Sends every Claude Code turn to your String Cortex server: a Stop hook marks the session, a background pusher sends the new transcript lines. Needs node on PATH; server and enrollment token come from STRING_CLAUDE_SYNC_URL / STRING_CLAUDE_SYNC_ENROLL_TOKEN.",
+  "version": "1.9.0-beta.1",
+  "description": "String Cortex BETA: does nothing unless the laptop has ~/Downloads/cortex-beta-plugin.txt. With it: sign in with your own Claude Code token, choose a workspace and project per folder, /cortex, and send each Claude Code turn to String Cortex. Needs node on PATH.",
   "author": {
     "name": "StringHub"
   }

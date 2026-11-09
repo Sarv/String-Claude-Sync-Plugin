@@ -1,21 +1,16 @@
 #!/usr/bin/env node
-// Claude Code Stop hook for String Cortex.
-// Marks the session as having new lines (~/.string-claude-sync/pending/<session>.json, with the account Claude Code is
-// logged in with right now) and starts scripts/push.js detached, which sends the lines to the server.
-// Never blocks or fails Claude Code: no network here, always exits 0. If the server is down the marker stays and the
-// next hook (of any session) sends it.
+// Claude Code Stop hook (beta build): only on a laptop with the beta file (scripts/flag.js) it runs next/'s hook,
+// which marks the session and starts the pusher. legacy/ never runs here. Never blocks or fails Claude Code.
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawnSync } = require('child_process');
+const flag = require('./flag');
 
+const f = flag.read();
+if (!f) process.exit(0);
 let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (c) => (input += c));
 process.stdin.on('end', () => {
-  try {
-    const { mark, account } = require('./push');
-    const p = JSON.parse(input || '{}');
-    mark({ session_id: p.session_id, transcript_path: p.transcript_path, cwd: p.cwd || null, account: account(), hook: true });
-    spawn(process.execPath, [path.join(__dirname, 'push.js')], { detached: true, stdio: 'ignore', env: process.env }).unref();
-  } catch {}
+  try { spawnSync(process.execPath, [path.join(__dirname, '..', 'next', 'scripts', 'hook.js')], { input, env: flag.nextEnv(f), stdio: ['pipe', 'ignore', 'ignore'], timeout: 2000 }); } catch {}
   process.exit(0);
 });

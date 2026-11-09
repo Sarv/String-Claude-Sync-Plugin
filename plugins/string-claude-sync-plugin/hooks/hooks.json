@@ -5,8 +5,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.js\"",
+            "command": "[ -f \"${STRING_CLAUDE_SYNC_BETA_FILE:-$HOME/Downloads/cortex-beta-plugin.txt}\" ] || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.js\"",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"${STRING_CLAUDE_SYNC_BETA_FILE:-$HOME/Downloads/cortex-beta-plugin.txt}\" ] || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt.js\"",
+            "timeout": 15
           }
         ]
       }
