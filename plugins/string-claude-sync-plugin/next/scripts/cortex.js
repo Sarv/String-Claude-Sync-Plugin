@@ -62,7 +62,8 @@ function ancestors(dir) {
  * The setting of the folder Claude Code runs in, for the identity logged in now (its company: the one its Claude
  * organisation is linked to in String Cortex). Chosen: { id, key, chosen: { workspace, project } }. Else asks the
  * server for the person's workspaces, each with its projects, and the workspace their conversations of this folder
- * already went to → { id, key, have (a workspace chosen without a project, or null), workspaces, current }.
+ * already went to → { id, key, have (a workspace chosen without a project, or null), workspaces, current, filing (the
+ * company's setting: { required, default })}.
  * null: no identity or no token for it. Throws push.Stop when the server can't be reached.
  */
 async function folder(cwd) {
@@ -82,7 +83,9 @@ async function folder(cwd) {
   if (cur) push.saveToken(id.key, { ...cur, workspaces }); // (the pusher holds a folder's lines only while there are workspaces to choose)
   const have = set ? workspaces.find((w) => w.id === set.workspace.id) || null : null;
   const current = have || workspaces.find((w) => w.id === r.json.current) || (workspaces.length === 1 ? workspaces[0] : null);
-  return { id: id.key, key: set?.key || key, have, workspaces, current };
+  // the company's setting (server filing.js): { required } (choosing is compulsory) or { default: { workspace, project } }
+  const filing = r.json.filing && typeof r.json.filing === 'object' ? r.json.filing : {};
+  return { id: id.key, key: set?.key || key, have, workspaces, current, filing };
 }
 
 /**

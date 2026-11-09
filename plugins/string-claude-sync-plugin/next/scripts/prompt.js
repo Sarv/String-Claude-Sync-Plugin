@@ -19,6 +19,10 @@
 //      Cortex. Asked on every prompt there until chosen; its lines wait on the laptop till then. Once chosen, never
 //      asked again in that folder (`/cortex project` changes it).
 //
+//   4. The company's setting in String Cortex (Company → Setup → Folder filing, server filing.js), from /api/plugin/folder:
+//      `default`: a folder with no project takes the company's default workspace and project by itself (a line says
+//      so; /cortex project changes it); `required`: choosing is compulsory, as with the gate below (for the folder step).
+//
 // The company gate (STRING_CLAUDE_SYNC_REQUIRED=1, from the company's managed settings): the same steps, on every
 // prompt, and Claude is told not to work on the person's request until String Cortex is connected and the folder has
 // its project; only to help with that. The message still reaches Claude (a blocked prompt could leave the person
@@ -87,6 +91,13 @@ async function main(input) {
   let f;
   try { f = await cortex.folder(cwd); } catch { return done(); } // can't reach it: ask later
   if (!f || f.chosen || !f.workspaces?.length) return done(); // chosen; or in no workspace: conversations are saved without one
+  // the company files folders without a choice into its default workspace and project (server filing.js): taken by itself
+  const d = f.filing?.default;
+  if (d?.workspace?.id && d?.project?.id && !cortex.choose(f.key, d.workspace.id, d.project.id).error) {
+    return note(`String Cortex: Conversations in ${f.key} will use the ${d.project.name} project (${d.workspace.name} workspace), your company’s default. To change it, type /cortex project.`);
+  }
+  // the company makes choosing compulsory (its setting in String Cortex), as the managed STRING_CLAUDE_SYNC_REQUIRED does
+  const requiredHere = required || f.filing?.required === true;
   const ws = f.current; // the one already chosen for this folder, or where its conversations went, or the only one
   if (ws && ws.projects.length === 1) {
     cortex.choose(f.key, ws.id, ws.projects[0].id);
@@ -96,14 +107,14 @@ async function main(input) {
   const folderName = path.basename(f.key) || f.key;
   const make = `Only the projects they are a member of are offered. The workspace's owners and admins create projects and add their members in String Cortex (${cfg.url}/app/ → All projects): ask them to be added to the right one, then type /cortex project here.`;
   const then = `Then call ${TOOLS}set_cortex_folder with folder "${f.key}", the workspace id and the project id. `
-    + (required ? hold : 'Then go on with their message. If they skip, go on with it (the conversation waits on this laptop until a project is chosen).');
+    + (requiredHere ? hold : 'Then go on with their message. If they skip, go on with it (the conversation waits on this laptop until a project is chosen).');
   const opts = (list) => list.map((x) => `"${x.name}" (id ${x.id})`).join(', ');
   const four = (n) => (n > 4 ? ' If there are more than 4, show 4 and let the person enter another name under Other.' : '');
   if (ws) {
     if (!ws.projects.length) {
       return tell(
         `String Cortex: the folder ${f.key} is in the workspace "${ws.name}", which has no project yet, so its conversations wait on this laptop. `
-        + `Tell the person in two lines: ${make} ${required ? hold : 'Then go on with their message.'}`,
+        + `Tell the person in two lines: ${make} ${requiredHere ? hold : 'Then go on with their message.'}`,
       );
     }
     return tell(
