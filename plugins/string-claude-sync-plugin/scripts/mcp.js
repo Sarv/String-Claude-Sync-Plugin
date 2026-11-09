@@ -63,7 +63,8 @@ const TOOLS = [
 
 const text = (t, isError = false) => ({ content: [{ type: 'text', text: t }], ...(isError ? { isError: true } : {}) });
 const here = () => process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const PASTE = 'Ask the person to open String Cortex → avatar → Claude Code token → Generate, then send the token in a separate message. The plugin will receive it before Claude does.';
+const SERVER = process.env.STRING_CLAUDE_SYNC_URL || require('../next/defaults.json').url;
+const PASTE = `Ask the person to open String Cortex (${SERVER}) → avatar → Claude Code token → Generate, then send the token in a separate message. The plugin will receive it before Claude does.`;
 
 async function call(name, args = {}) {
   const { push, cortex } = next;
@@ -72,12 +73,16 @@ async function call(name, args = {}) {
     if (!id) return text(cortex.NO_IDENTITY);
     if (!clientCaps.elicitation) return text(`This app cannot open the token form. ${PASTE}`);
     let r;
+    const t0 = Date.now();
     try {
       r = await request('elicitation/create', {
         message: `Connect String Cortex for ${cortex.who(id.account)}. In String Cortex, open your avatar → Claude Code token → Generate. Paste the token below. It stays on this laptop and is not sent to Claude.`,
         requestedSchema: { type: 'object', properties: { token: { type: 'string', title: 'Claude Code token', description: 'Starts with sct_' } }, required: ['token'] },
       });
     } catch { return text(`The token form could not open. ${PASTE}`); }
+    // Some apps say they have forms but answer at once without showing one (Claude desktop app's Code tab, 2026-11-09):
+    // an answer within 3 s is no person closing a form, so give the other way in.
+    if (r?.action !== 'accept' && Date.now() - t0 < 3000) return text(`This app did not show the token form. ${PASTE}`);
     if (r?.action !== 'accept') return text('The form was closed, so String Cortex is still not connected. Continue with the person’s message.');
     const c = await cortex.connectWith(r.content?.token);
     return text(c.text, !c.ok);

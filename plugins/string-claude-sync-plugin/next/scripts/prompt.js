@@ -79,7 +79,7 @@ async function main(input) {
       `String Cortex is not connected for ${cortex.who(id.account)}. Before replying, call ${TOOLS}connect_cortex to open a token form. `
       + 'The token goes directly to the plugin, not to you. Never ask for it in chat. Briefly explain the result. '
       + (required ? hold : 'Then answer the person’s message. If they close the form, answer their message anyway.'),
-      `String Cortex: ${cortex.who(id.account)} is not connected yet. A form will open to enter your Claude Code token.`,
+      `String Cortex: ${cortex.who(id.account)} is not connected yet. A form will open to enter your Claude Code token; if none opens, send the token as a message on its own.`,
     );
   }
 
