@@ -1,6 +1,6 @@
 # String Cortex plugin
 
-> **This is the `beta` branch (1.9.0-beta.2).** The plugin does nothing on a laptop unless the file
+> **This is the `beta` branch (1.9.0-beta.3).** The plugin does nothing on a laptop unless the file
 > `~/Downloads/cortex-beta-plugin.txt` exists; there it signs in with the person's own String Cortex token and asks
 > each folder's workspace and project (`/cortex`). Marketplace `string-tools-beta`. The live plugin is on `main`.
 

@@ -56,10 +56,15 @@ async function main(input) {
   // 0. the turn register (before anything can stop here)
   const id = push.note('start', { session_id: input.session_id, transcript_path: input.transcript_path, cwd });
 
-  // 1. a token sent as a message
-  if (cortex.TOKEN_RE.test(prompt)) {
-    const r = await cortex.connectWith(prompt);
+  // 1. a token sent as a message (alone, or "/cortex connect <token>"; whatever the app put around it taken off);
+  // a token inside a longer message is held back too, so a token never reaches Claude
+  const tk = cortex.tokenIn(prompt);
+  if (tk?.token) {
+    const r = await cortex.connectWith(tk.token);
     return block(`${r.text} ${r.ok ? 'Your message was not sent to Claude. Please send it again.' : 'Your message was not sent to Claude.'}`);
+  }
+  if (tk?.stray) {
+    return block('String Cortex: Your message contains a Claude Code token, so it was not sent to Claude. To connect, send the token on its own (or /cortex connect followed by the token); for anything else, send your message without it.');
   }
 
   if (!id) return done(); // no Claude account of an organisation (logged out, an API key): its lines are not sent

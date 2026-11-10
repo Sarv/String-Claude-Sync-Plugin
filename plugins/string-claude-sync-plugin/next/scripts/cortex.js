@@ -5,6 +5,28 @@ const path = require('path');
 const push = require('./push');
 
 const TOKEN_RE = /^\s*(sct_[0-9a-f]{48})\s*$/;
+const ANY_TOKEN_RE = /sct_[0-9a-f]{20,}/i; // a whole or cut-off token anywhere in a message
+const CONNECT_RE = /^\/(?:[\w.-]+:)?cortex\s+connect\s+(sct_[0-9a-f]{48})\s*$/;
+
+/**
+ * What a prompt says about a token, for the prompt hook: { token } when the person sent one to connect with (the
+ * token alone, or "/cortex connect <token>"), { stray: true } when a token is only part of a longer message (it must
+ * not reach Claude either), else null. Apps add text of their own around the person's words: the Claude desktop app
+ * puts a <system-reminder> block in front (a session with linked sessions), and a slash command may arrive as its
+ * <command-name> / <command-args> record. Those are taken off first.
+ */
+function tokenIn(prompt) {
+  let t = String(prompt || '').replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, ' ');
+  const name = /<command-name>\s*([^<]*?)\s*<\/command-name>/.exec(t);
+  if (name && /^\/?(?:[\w.-]+:)?cortex$/.test(name[1])) {
+    const args = /<command-args>([\s\S]*?)<\/command-args>/.exec(t);
+    t = `/cortex ${args ? args[1] : ''}`;
+  }
+  t = t.trim();
+  const m = TOKEN_RE.exec(t) || CONNECT_RE.exec(t);
+  if (m) return { token: m[1] };
+  return ANY_TOKEN_RE.test(String(prompt || '')) ? { stray: true } : null;
+}
 const who = (acct) => `${acct.email || acct.account_uuid} (${acct.org_name || acct.org_uuid})`;
 /** Why there is no identity to connect: for the person. */
 const NO_IDENTITY = 'String Cortex: Claude Code is signed out or using an API key instead of an organisation account. Sign in with your company’s Claude account using /login, then try again.';
@@ -119,4 +141,4 @@ function disconnect() {
   return { had, account: id.account };
 }
 
-module.exports = { TOKEN_RE, NO_IDENTITY, who, asIdentity, connectWith, folder, choose, disconnect };
+module.exports = { TOKEN_RE, tokenIn, NO_IDENTITY, who, asIdentity, connectWith, folder, choose, disconnect };

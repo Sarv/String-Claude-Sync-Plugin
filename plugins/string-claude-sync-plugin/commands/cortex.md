@@ -1,6 +1,6 @@
 ---
 description: String Cortex for this laptop — status, connect, choose this folder's project, disconnect
-argument-hint: "[status | connect | project | disconnect]"
+argument-hint: "[status | connect [token] | project | disconnect]"
 ---
 
 The person typed `/cortex $ARGUMENTS`. Handle it with the String Cortex plugin's tools (their names end in
@@ -13,6 +13,9 @@ Never ask for the Claude Code token in chat, and never show ids to the person.
   at which company), this folder's workspace and project, and that `/cortex project` changes it. If it says not
   connected, offer `/cortex connect`.
 - **`connect`**: call `connect_cortex` (it opens a form for the token). Tell the person in one line what it answered.
+  The plugin takes `/cortex connect <token>` (or the token sent on its own) before Claude sees it. If a token still
+  reaches you, never use, repeat or show it: say that it reached the chat, that they should generate a new one and
+  send it on its own in a message.
 - **`project`** (also `workspace`): call `cortex_status` for this folder. Then use AskUserQuestion twice: first
   "Which String Cortex workspace is this folder for?" (header "Workspace", one option per workspace), then "Which
   project is this folder for?" (header "Project", one option per project of the chosen workspace). If the chosen

@@ -401,7 +401,7 @@ async function accessToken(cfg, key, { force = false } = {}) {
 
 // ---------- reading lines ----------
 /** The next run of complete lines from `start` up to `limit`: { start, end, data, sizes? }, { start, end, skipped } or null. */
-function nextChunk(fd, start, limit) {
+function nextChunk(fd, start, limit, ticks = null) {
   if (start >= limit) return null;
   const want = Math.min(CHUNK, limit - start);
   let buf = Buffer.alloc(want);
@@ -423,7 +423,7 @@ function nextChunk(fd, start, limit) {
     n = fs.readSync(fd, buf, 0, buf.length, start);
     nl = n - 1;
   }
-  return { start, end: start + nl + 1, ...stripImages(hideTokens(buf.toString('utf8', 0, nl + 1))) };
+  return { start, end: start + nl + 1, ...stripImages(hideTokens(buf.toString('utf8', 0, nl + 1)), ticks) };
 }
 
 /** A Claude Code token in a line (given in the form or as a message) never leaves the laptop: same length, so the
@@ -436,22 +436,63 @@ const hideTokens = (text) => text.replace(/sct_[0-9a-f]{48}/g, (t) => `sct_${'x'
  * the transcript's own: { data, sizes } where sizes = each line's byte length in the file (only when a line got
  * shorter; without it every line is as long as in the file).
  */
-function stripImages(text) {
+function stripImages(text, ticks = null) {
   const lines = text.split('\n');
   lines.pop(); // text ends with \n
   let changed = false;
   const sizes = [];
   const out = lines.map((line) => {
     sizes.push(Buffer.byteLength(line) + 1);
-    if (!line.includes('"base64"')) return line;
+    const img = line.includes('"base64"');
+    const cut = ticks && TRIM_HINT.test(line);
+    if (!img && !cut) return line;
     let obj;
     try { obj = JSON.parse(line); } catch { return line; }
-    if (!dropBase64(obj)) return line;
+    const a = img && dropBase64(obj);
+    const b = cut && trimUnticked(obj, ticks);
+    if (!a && !b) return line;
     changed = true;
     return JSON.stringify(obj);
   });
   return changed ? { data: out.join('\n') + '\n', sizes } : { data: text };
 }
+// ---------- what the company saves (the server's capture setting, docs/capture.md) ----------
+// The company ticks what of a chat it keeps besides prompts and replies: thinking, tool calls, tool results, tool
+// errors, helper agents. The server sends the setting with its push answer when this laptop's copy is another version
+// (capture_version); it is kept per identity in capture.json. What is not ticked is emptied here, before it leaves
+// the laptop; the server applies the same setting again on its side. No copy yet: everything is sent (the server
+// keeps only what is ticked).
+const captureFile = (key) => path.join(idDir(key), 'capture.json');
+const readCapture = (key) => (key ? readJson(captureFile(key), null) : null);
+function saveCapture(key, c) { if (key && c && Number.isFinite(c.version)) writeJson(captureFile(key), c); }
+/** The ticks for a folder of this workspace: the workspace's own, else the company's; null = no copy yet. */
+function ticksOf(cap, workspaceId) {
+  if (!cap?.ticks) return null;
+  return (workspaceId && cap.workspaces?.[workspaceId]) || cap.ticks;
+}
+const TRIM_HINT = /"(thinking|tool_use|tool_result)"|"isSidechain":true/;
+/** Empties, in place, the parts of one Claude Code line these ticks don't keep (the line stays valid, its usage stays). */
+function trimUnticked(obj, t) {
+  const msg = obj?.message;
+  if (!msg || !Array.isArray(msg.content)) return false;
+  let hit = false;
+  if (obj.isSidechain && !t.subagents) {
+    if (msg.content.length) { msg.content = []; hit = true; }
+    if (obj.toolUseResult !== undefined) { delete obj.toolUseResult; hit = true; }
+    return hit;
+  }
+  for (const b of msg.content) {
+    if (!b || typeof b !== 'object') continue;
+    if (b.type === 'thinking' && !t.thinking && b.thinking) { b.thinking = ''; hit = true; }
+    if (b.type === 'tool_use' && !t.tool_calls && b.input && Object.keys(b.input).length) { b.input = {}; hit = true; }
+    if (b.type === 'tool_result' && !(b.is_error ? t.tool_errors : t.tool_results)) {
+      if (b.content !== '') { b.content = ''; hit = true; }
+      if (obj.toolUseResult !== undefined) { delete obj.toolUseResult; hit = true; }
+    }
+  }
+  return hit;
+}
+
 /** Empties base64 data in place ({ type: 'base64', data } image/document sources, { base64 } file results). */
 function dropBase64(v) {
   if (!v || typeof v !== 'object') return false;
@@ -538,7 +579,9 @@ async function pushSession(cfg, marker, state, access) {
 
 /** One identity's range, chunk by chunk. */
 async function pushRange(cfg, { slug, session_id, cwd, fd, range, acct, key, set, entry, state, access, sent }) {
-  let cur = nextChunk(fd, range.start, range.end);
+  let cap = readCapture(key);
+  let ticks = ticksOf(cap, set?.workspace?.id);
+  let cur = nextChunk(fd, range.start, range.end, ticks);
   let gap = true; // the bytes before a range are another identity's or of none: the server may move past them
   let stalls = 0;
   let requests = 0;
@@ -554,11 +597,18 @@ async function pushRange(cfg, { slug, session_id, cwd, fd, range, acct, key, set
         slug, session_id, start: cur.start, end: cur.end, data: cur.data || '', skipped: !!cur.skipped,
         ...(cur.sizes ? { sizes: cur.sizes } : {}),
         account: acct, cwd: cwd || null, gap, ...(set ? { workspace_id: set.workspace.id, project_id: set.project?.id } : {}),
+        capture_version: cap ? cap.version : null,
       },
     });
     let r = await send(false);
     if (r.json.code === 'ACCESS_TOKEN_INVALID') r = await send(true); // traded again once
     const code = r.json.code;
+    // the company's setting changed (or this laptop had none): keep it, and use it from the next chunk on
+    if (r.json.capture && r.json.capture.version !== cap?.version) {
+      cap = r.json.capture;
+      saveCapture(key, cap);
+      ticks = ticksOf(cap, set?.workspace?.id);
+    }
     if (code === 'QUEUED' || code === 'DUPLICATE') {
       if (cur.skipped) log(`${session_id.slice(0, 8)}: Skipped a line larger than the allowed size (${((cur.end - cur.start) / 1048576).toFixed(1)} MB).`);
       sent.set(key, (sent.get(key) || 0) + (code === 'QUEUED' ? cur.end - cur.start : 0));
@@ -567,14 +617,14 @@ async function pushRange(cfg, { slug, session_id, cwd, fd, range, acct, key, set
       entry.offset = Math.max(entry.offset, to);
       writeJson(STATE, state);
       gap = false;
-      cur = nextChunk(fd, to, range.end); // (the server may already have had more)
+      cur = nextChunk(fd, to, range.end, ticks); // (the server may already have had more)
     } else if (code === 'OFFSET_MISMATCH') {
       // the server has less of this company's than sent (it lost some): from there, within this identity's range
       const from = Math.max(range.start, Math.min(r.json.offset, cur.start));
       log(`${session_id.slice(0, 8)}: Server position is ${r.json.offset} bytes; local position was ${cur.start}. Resending from ${from}.`);
       stalls++;
       gap = from === range.start;
-      cur = nextChunk(fd, from, range.end);
+      cur = nextChunk(fd, from, range.end, ticks);
     } else if (code === 'EXCLUDED') {
       return { ok: true, at: range.end }; // the company doesn't keep this project
     } else if (code === 'WORKSPACE_NOT_ALLOWED') {
@@ -711,6 +761,6 @@ if (require.main === module) main();
 
 module.exports = {
   DIR, account, identityOf, current, readIdentity, listIdentities, idBody, readToken, saveToken, dropToken, trade,
-  accessToken, folderKey, readFolders, saveFolders, settingFor, setFolder, note, mark, rangesOf, run, main, stripImages, config,
+  accessToken, folderKey, readFolders, saveFolders, settingFor, setFolder, note, mark, rangesOf, run, main, stripImages, trimUnticked, ticksOf, readCapture, config,
   call, readJson, writeJson, Stop, migrateFlat,
 };
