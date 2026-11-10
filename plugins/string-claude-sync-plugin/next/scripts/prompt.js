@@ -6,7 +6,9 @@
 //      whatever else happens (lines are tied to an identity only between its own marks).
 //   1. A token sent as a message: taken, traded with the server for the identity logged in now (so the one in the
 //      message stops working at once), kept in that identity's folder, and the message is stopped: it never goes to
-//      Claude. The only message this hook ever stops.
+//      Claude (Claude Code shows it as "blocked"; the text says it went well). A token inside any other message stops
+//      that message too. These are the only messages this hook ever stops. Claude in a session that was told
+//      "not connected" (2) is told on its next prompt that it now is (2b), since it never saw the token message.
 //   2. No token yet for the identity logged in now (a new laptop, a second company's account, …): the prompt goes on,
 //      and Claude is told to open the plugin's form for the token first (connect_cortex: the token goes from the form
 //      to the plugin, never to Claude). Once per session per identity; the form not shown (an app without forms):
@@ -42,7 +44,18 @@ const pluginName = () => {
 };
 const TOOLS = `mcp__plugin_${pluginName()}_cortex__`;
 
-const done = (obj) => { if (obj) process.stdout.write(JSON.stringify(obj)); process.exit(0); };
+// a note for Claude that goes with whatever this prompt answers (not with a blocked prompt, which Claude never sees)
+let carry = '';
+const done = (obj) => {
+  if (carry && !(obj && obj.decision === 'block')) {
+    obj = obj || {};
+    const h = obj.hookSpecificOutput || { hookEventName: 'UserPromptSubmit' };
+    h.additionalContext = h.additionalContext ? `${carry} ${h.additionalContext}` : carry;
+    obj.hookSpecificOutput = h;
+  }
+  if (obj) process.stdout.write(JSON.stringify(obj));
+  process.exit(0);
+};
 const block = (reason) => done({ decision: 'block', reason });
 const note = (msg) => done({ systemMessage: msg });
 const tell = (context, msg) => done({ ...(msg ? { systemMessage: msg } : {}), hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: context } });
@@ -60,8 +73,12 @@ async function main(input) {
   // a token inside a longer message is held back too, so a token never reaches Claude
   const tk = cortex.tokenIn(prompt);
   if (tk?.token) {
+    // Claude Code shows any stopped prompt as "blocked"; stopping it is the only way to keep the token from Claude,
+    // so the text says plainly what happened
     const r = await cortex.connectWith(tk.token);
-    return block(`${r.text} ${r.ok ? 'Your message was not sent to Claude. Please send it again.' : 'Your message was not sent to Claude.'}`);
+    return block(r.ok
+      ? `✓ ${r.text} All set, nothing went wrong: Claude Code shows this as a blocked prompt only because your token was kept away from Claude. Carry on with your next message.`
+      : `${r.text} (This message was kept away from Claude, so your token stays private.)`);
   }
   if (tk?.stray) {
     return block('String Cortex: Your message contains a Claude Code token, so it was not sent to Claude. To connect, send the token on its own (or /cortex connect followed by the token); for anything else, send your message without it.');
@@ -72,17 +89,16 @@ async function main(input) {
   const hold = 'The person’s company makes String Cortex compulsory: until this is done, do not work on their request. '
     + 'Help them only with this (answer their questions about it, take what it needs), then ask them to send their request again.';
 
-  // 2. no token yet for this identity: the form (once per session; with the gate, every prompt)
+  // 2. no token yet for this identity: the form (once per session; with the gate, every prompt). The session is noted
+  // (nudged.json), so that once the token is there, Claude in that session is told so (2b).
+  const nk = `${input.session_id}:${id.key}`;
   if (!push.readToken(cfg, id.key)) {
-    if (!required) {
-      const seen = push.readJson(NUDGED, {});
-      const k = `${input.session_id}:${id.key}`;
-      if (input.session_id && seen[k]) return done();
-      if (input.session_id) {
-        seen[k] = new Date().toISOString();
-        require('fs').mkdirSync(push.DIR, { recursive: true, mode: 0o700 }); // (a laptop's first prompt: not there yet)
-        push.writeJson(NUDGED, Object.fromEntries(Object.entries(seen).sort((a, b) => (a[1] < b[1] ? 1 : -1)).slice(0, 50)));
-      }
+    const seen = push.readJson(NUDGED, {});
+    if (!required && input.session_id && seen[nk]) return done();
+    if (input.session_id && !seen[nk]) {
+      seen[nk] = new Date().toISOString();
+      require('fs').mkdirSync(push.DIR, { recursive: true, mode: 0o700 }); // (a laptop's first prompt: not there yet)
+      push.writeJson(NUDGED, Object.fromEntries(Object.entries(seen).sort((a, b) => (a[1] < b[1] ? 1 : -1)).slice(0, 50)));
     }
     return tell(
       `String Cortex is not connected for ${cortex.who(id.account)}. Before replying, call ${TOOLS}connect_cortex to open a token form. `
@@ -90,6 +106,17 @@ async function main(input) {
       + (required ? hold : 'Then answer the person’s message. If they close the form, answer their message anyway.'),
       `String Cortex: ${cortex.who(id.account)} is not connected yet. A form will open to enter your Claude Code token; if none opens, send the token as a message on its own.`,
     );
+  }
+
+  // 2b. connected since Claude in this session was told it isn't (the token message itself was stopped, so Claude
+  // never saw it): tell Claude once, with whatever this prompt answers below
+  const seenNow = push.readJson(NUDGED, {});
+  if (input.session_id && seenNow[nk]) {
+    delete seenNow[nk];
+    push.writeJson(NUDGED, seenNow);
+    carry = `String Cortex is now connected for ${cortex.who(id.account)}: the person sent their token and the plugin took it (you never see it). `
+      + 'What this conversation said earlier about String Cortex not being connected, or about sending a token, no longer applies: '
+      + 'do not ask for a token or mention it again. Answer the person’s message.';
   }
 
   // 3. the folder's workspace and project
