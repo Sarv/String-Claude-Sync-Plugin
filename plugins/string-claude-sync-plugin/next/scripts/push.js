@@ -739,6 +739,11 @@ function status() {
     const folders = Object.entries(readFolders(i.key)).map(([k, v]) => { const n = normal(v); return `${k} → ${n.workspace.name} / ${n.project?.name || '(no project yet)'}`; }).join('; ') || 'none selected yet';
     console.log(`Account:    ${who(i.account)}${now?.key === i.key ? ' [currently signed in]' : ''}`);
     console.log(`  Token:    ${t ? `${t.name || '?'} at ${t.company || '?'}; ${t.access_until && Date.parse(t.access_until) > Date.now() ? `valid until ${t.access_until}` : 'Will be exchanged on next push'}; workspaces: ${(t.workspaces || []).map((w) => w.name).join(', ') || 'none'}` : 'None (create one in String Cortex → avatar → Claude Code token; Claude Code will open a form)'}`);
+    if (!t) {
+      // connecting from the organisation's member list (cortex.js listConnect): where it stands, never the claim secret
+      const c = readJson(path.join(IDENTITIES, i.key, 'claim.json'), null);
+      console.log(`  List:     ${!c ? 'not asked yet' : c.mode === 'token' ? `the organisation uses own tokens (asked ${c.asked_at})` : c.status === 'refused' ? `request ${c.why || 'refused'} (/cortex connect asks again)` : `waiting for an approval since ${c.asked_at}${c.checked_at ? `, checked ${c.checked_at}` : ''}`}`);
+    }
     console.log(`  Folders:  ${folders}`);
   }
   const held = readJson(HELD, []);

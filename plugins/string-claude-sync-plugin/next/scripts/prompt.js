@@ -9,8 +9,12 @@
 //      Claude (Claude Code shows it as "blocked"; the text says it went well). A token inside any other message stops
 //      that message too. These are the only messages this hook ever stops. Claude in a session that was told
 //      "not connected" (2) is told on its next prompt that it now is (2b), since it never saw the token message.
-//   2. No token yet for the identity logged in now (a new laptop, a second company's account, …): the prompt goes on,
-//      and Claude is told to open the plugin's form for the token first (connect_cortex: the token goes from the form
+//   2. No token yet for the identity logged in now (a new laptop, a second company's account, …): the prompt goes on.
+//      2a. The organisation connects people from its member list (cortex.listConnect): this laptop asks, then waits for
+//      an approval and connects by itself; Claude is told so once per session. A refused request: told once, and
+//      /cortex connect asks again. Couldn't ask (no answer, a timeout, a server error): told once that String Cortex
+//      couldn't be reached, asked again next prompt; never taken for "own token" (CORTEX-125).
+//      Otherwise (own token), Claude is told to open the plugin's form for the token first (connect_cortex: the token goes from the form
 //      to the plugin, never to Claude). Once per session per identity; the form not shown (an app without forms):
 //      Claude tells the person to send the token as a message (1). Its lines wait on the laptop until then.
 //   3. A folder (by its path; a subfolder goes with the nearest folder above it that has one) with no project yet: the
@@ -30,7 +34,7 @@
 // its project; only to help with that. The message still reaches Claude (a blocked prompt could leave the person
 // stuck with no one to ask).
 //
-// Never slows Claude Code down for long: network calls time out in 5 s, and when the server can't be reached the
+// Never slows Claude Code down for long: network calls time out in 5 s (8 s for the member-list ask), and when the server can't be reached the
 // prompt goes on (lines wait on the laptop until the folder has a project).
 const path = require('path');
 const push = require('./push');
@@ -110,14 +114,43 @@ async function main(input) {
     const seenC = push.readJson(NUDGED, {});
     if (seenC[nk]) { delete seenC[nk]; push.writeJson(NUDGED, seenC); }
   }
-  if (!push.readToken(cfg, id.key) && viaList?.mode === 'list' && viaList.status === 'pending') {
+  // once per session per identity (with the gate: every prompt), and noted so that 2b tells Claude once it connects
+  const once = (kind) => {
     const seen = push.readJson(NUDGED, {});
-    if (!required && input.session_id && seen[nk]) return done();
-    if (input.session_id && !seen[nk]) {
-      seen[nk] = new Date().toISOString();
+    if (!required && input.session_id && seen[nk] === kind) return false;
+    if (input.session_id) {
+      delete seen[nk]; // (newest last: the file keeps the latest 50)
+      seen[nk] = kind;
       require('fs').mkdirSync(push.DIR, { recursive: true, mode: 0o700 });
-      push.writeJson(NUDGED, Object.fromEntries(Object.entries(seen).sort((a, b) => (a[1] < b[1] ? 1 : -1)).slice(0, 50)));
+      push.writeJson(NUDGED, Object.fromEntries(Object.entries(seen).slice(-50)));
     }
+    return true;
+  };
+  // couldn't ask (no answer, a timeout, a server error): never taken for "own token" (CORTEX-125); asked again on the
+  // next prompt
+  if (!push.readToken(cfg, id.key) && viaList?.mode === 'unknown') {
+    if (!once('unknown')) return done();
+    return tell(
+      `String Cortex is not connected yet for ${cortex.who(id.account)}, and the plugin couldn't reach String Cortex (${cfg.url}) to ask how this laptop connects (${viaList.error}). `
+      + 'It asks again with the person’s next message by itself. Tell the person this in one short line, and that /cortex status shows where it stands. Do not ask for a token in chat. '
+      + (required ? hold : 'Then answer the person’s message.'),
+      `String Cortex: couldn't reach ${cfg.url} to connect this laptop (${viaList.error}). It tries again with your next message.`,
+    );
+  }
+  // refused by the person or an admin (or its token couldn't be taken): told once; /cortex connect asks again
+  if (!push.readToken(cfg, id.key) && viaList?.mode === 'list' && viaList.status === 'refused') {
+    if (!once('refused')) return done();
+    const why = viaList.why === 'failed' || viaList.why === 'delivered' ? 'was approved, but its connection could not be completed' : 'was refused (by the person or an organisation admin)';
+    return tell(
+      `String Cortex is not connected for ${cortex.who(id.account)}: this laptop's request to connect from the organisation's member list ${why}. `
+      + 'If that was a mistake, the person can ask again with /cortex connect (an admin approves it under String Cortex → Manage → Laptops), or connect with their own token: String Cortex → avatar → Claude Code token → Generate, then send the token on its own in a message. '
+      + 'Tell the person this in two short lines. Do not ask for a token in chat. '
+      + (required ? hold : 'Then answer the person’s message.'),
+      `String Cortex: this laptop's request to connect ${why}. To ask again: /cortex connect.`,
+    );
+  }
+  if (!push.readToken(cfg, id.key) && viaList?.mode === 'list' && viaList.status === 'pending') {
+    if (!once('pending')) return done();
     return tell(
       `String Cortex is not connected yet for ${cortex.who(id.account)}. This laptop asked the person’s organisation to connect it from the organisation’s member list, and is waiting for an approval: `
       + `the person approves it in String Cortex (${cfg.url}/app/ → avatar → Claude Code token → "This is me"), or an organisation admin does (String Cortex → Manage → Laptops). `
@@ -128,13 +161,7 @@ async function main(input) {
     );
   }
   if (!push.readToken(cfg, id.key)) {
-    const seen = push.readJson(NUDGED, {});
-    if (!required && input.session_id && seen[nk]) return done();
-    if (input.session_id && !seen[nk]) {
-      seen[nk] = new Date().toISOString();
-      require('fs').mkdirSync(push.DIR, { recursive: true, mode: 0o700 }); // (a laptop's first prompt: not there yet)
-      push.writeJson(NUDGED, Object.fromEntries(Object.entries(seen).sort((a, b) => (a[1] < b[1] ? 1 : -1)).slice(0, 50)));
-    }
+    if (!once('token')) return done();
     return tell(
       `String Cortex is not connected for ${cortex.who(id.account)}. Before replying, call ${TOOLS}connect_cortex to open a token form. `
       + 'The token goes directly to the plugin, not to you. Never ask for it in chat. Briefly explain the result. '

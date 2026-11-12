@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 // The plugin's tools for Claude: a small MCP server over stdio (newline-delimited JSON-RPC; no dependencies).
 // Without the beta file (scripts/flag.js) it has no tools, so the laptop sees nothing new. With it (next/):
-//   connect_cortex        opens a form (MCP elicitation) for the person's Claude Code token; the token goes from the
-//                         form to this process, is traded with the server and kept on the laptop. Claude only sees
-//                         "connected as …". An app without forms: tells Claude to have the person send it as a message.
-//   cortex_status         connected or not, a folder's workspace and project, the person's workspaces and their projects
+//   connect_cortex        an organisation on its member list: this laptop asks (again, after a refusal) and waits for
+//                         an approval. Otherwise opens a form (MCP elicitation) for the person's Claude Code token; the
+//                         token goes from the form to this process, is traded with the server and kept on the laptop.
+//                         Claude only sees "connected as …". An app without forms (or one that didn't show it before,
+//                         remembered per app): tells Claude to have the person send it as a message.
+//   cortex_status         connected or not (not: where the member-list request stands), a folder's workspace and
+//                         project, the person's workspaces and their projects
 //   set_cortex_folder     saves a folder's workspace and project (after Claude asked the person with its options question)
 //   disconnect_cortex     forgets this laptop's token for the Claude account logged in (`/cortex disconnect`)
 // The plugin's /cortex command (../commands/cortex.md) uses them.
@@ -18,6 +21,7 @@ const VERSION = require('../.claude-plugin/plugin.json').version;
 
 const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', ...msg })}\n`);
 let clientCaps = {};
+let clientName = ''; // the app (its name and version, from initialize): one that didn't show the form is remembered
 let seq = 0;
 const waiting = new Map(); // our requests to Claude Code (the form) → their answer
 function request(method, params, timeoutMs = 10 * 60_000) {
@@ -65,13 +69,40 @@ const text = (t, isError = false) => ({ content: [{ type: 'text', text: t }], ..
 const here = () => process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const SERVER = process.env.STRING_CLAUDE_SYNC_URL || require('../next/defaults.json').url;
 const PASTE = `Ask the person to open String Cortex (${SERVER}) → avatar → Claude Code token → Generate, then send the token in a separate message. The plugin will receive it before Claude does.`;
+// apps that answered the form at once without showing it (the Claude desktop app's Code tab, 2026-11-09): asked
+// straight away for a message next time (CORTEX-125), per app name and version, so an app that learns forms is tried again
+const NO_FORMS = () => require('path').join(next.push.DIR, 'no-forms.json');
+const formsOff = () => !!next.push.readJson(NO_FORMS(), {})[clientName];
+const noteFormsOff = () => { try { const m = next.push.readJson(NO_FORMS(), {}); m[clientName] = new Date().toISOString(); next.push.writeJson(NO_FORMS(), m); } catch {} };
+const ago = (iso) => { const m = Math.round((Date.now() - Date.parse(iso)) / 60000); return !iso ? '' : m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+/** Not connected: what the member list says (cortex_status, CORTEX-125). */
+function notConnected(id) {
+  const st = next.cortex.claimState();
+  const who = next.cortex.who(id.account);
+  const how = !st ? 'Not asked yet: the next message asks how this laptop connects.'
+    : st.mode === 'token' ? `The organisation connects with each person’s own token (checked ${ago(st.asked_at)}).`
+      : st.status === 'refused' ? `This laptop’s request from the member list ${st.why === 'failed' || st.why === 'delivered' ? 'was approved, but its connection could not be completed' : 'was refused'}. /cortex connect asks again.`
+        : `Asked to connect from the organisation’s member list ${ago(st.asked_at)}; waiting for an approval (the person: String Cortex → avatar → Claude Code token → This is me; an admin: Manage → Laptops). Last checked ${ago(st.checked_at) || 'not yet'}.`;
+  return `Connected: no, for ${who}\nMember list: ${how}\nTo connect with your own token: /cortex connect.`;
+}
 
 async function call(name, args = {}) {
   const { push, cortex } = next;
   const id = push.current();
   if (name === 'connect_cortex') {
     if (!id) return text(cortex.NO_IDENTITY);
+    // the organisation connects from its member list: this laptop asks (again, when refused) instead of a form
+    if (!push.readToken(push.config(), id.key)) {
+      const refused = cortex.claimState()?.status === 'refused';
+      const lc = await cortex.listConnect({ again: refused });
+      if (lc?.connected) return text(lc.text);
+      if (lc?.mode === 'unknown') return text(`String Cortex: couldn’t reach ${SERVER} to connect this laptop (${lc.error}). Try again shortly; it also tries with each message.`, true);
+      if (lc?.mode === 'list' && lc.status === 'pending') {
+        return text(`String Cortex: this laptop ${refused ? 'asked again' : 'has asked'} to connect ${cortex.who(id.account)} from the organisation’s member list and waits for an approval: the person approves it in String Cortex (${SERVER}/app/ → avatar → Claude Code token → "This is me"), or an organisation admin does (Manage → Laptops). It connects by itself with a later message. To use their own token instead: ${PASTE}`);
+      }
+    }
     if (!clientCaps.elicitation) return text(`This app cannot open the token form. ${PASTE}`);
+    if (formsOff()) return text(`This app doesn’t show the token form. ${PASTE}`);
     let r;
     const t0 = Date.now();
     try {
@@ -82,12 +113,13 @@ async function call(name, args = {}) {
     } catch { return text(`The token form could not open. ${PASTE}`); }
     // Some apps say they have forms but answer at once without showing one (Claude desktop app's Code tab, 2026-11-09):
     // an answer within 3 s is no person closing a form, so give the other way in.
-    if (r?.action !== 'accept' && Date.now() - t0 < 3000) return text(`This app did not show the token form. ${PASTE}`);
+    if (r?.action !== 'accept' && Date.now() - t0 < 3000) { noteFormsOff(); return text(`This app did not show the token form. ${PASTE}`); }
     if (r?.action !== 'accept') return text('The form was closed, so String Cortex is still not connected. Continue with the person’s message.');
     const c = await cortex.connectWith(r.content?.token);
     return text(c.text, !c.ok);
   }
   if (!id) return text(cortex.NO_IDENTITY, true);
+  if (name === 'cortex_status' && !push.readToken(push.config(), id.key)) return text(notConnected(id));
   if (name !== 'disconnect_cortex' && !push.readToken(push.config(), id.key)) return text(`String Cortex is not connected for ${cortex.who(id.account)}. Call connect_cortex first.`, true);
   if (name === 'disconnect_cortex') {
     const d = cortex.disconnect();
@@ -118,6 +150,7 @@ async function handle(m) {
   if (m.id !== undefined && !m.method) { waiting.get(m.id)?.(m); return; } // an answer to our request
   if (m.method === 'initialize') {
     clientCaps = m.params?.capabilities || {};
+    clientName = `${m.params?.clientInfo?.name || '?'} ${m.params?.clientInfo?.version || ''}`.trim();
     return send({ id: m.id, result: { protocolVersion: m.params?.protocolVersion || '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'string-cortex', version: VERSION } } });
   }
   if (m.id === undefined) return; // notifications (initialized, cancelled, …)

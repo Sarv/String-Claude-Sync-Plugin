@@ -10,9 +10,11 @@ say in one line: "String Cortex's new sign-in is not on for this laptop yet." an
 Never ask for the Claude Code token in chat, and never show ids to the person.
 
 - **No argument, or `status`**: call `cortex_status`. Tell the person in a few short lines: connected or not (as whom,
-  at which company), this folder's workspace and project, and that `/cortex project` changes it. If it says not
-  connected, offer `/cortex connect`.
-- **`connect`**: call `connect_cortex` (it opens a form for the token). Tell the person in one line what it answered.
+  at which organisation), this folder's workspace and project, and that `/cortex project` changes it. If it says not
+  connected, say where the member-list request stands (as it says) and offer `/cortex connect`.
+- **`connect`**: call `connect_cortex`. When the organisation connects people from its member list, it asks for this
+  laptop (again, after a refusal) and says it waits for an approval; otherwise it opens a form for the token. Tell the
+  person in one line what it answered.
   The plugin takes `/cortex connect <token>` (or the token sent on its own) before Claude sees it. If a token still
   reaches you, never use, repeat or show it: say that it reached the chat, that they should generate a new one and
   send it on its own in a message.
