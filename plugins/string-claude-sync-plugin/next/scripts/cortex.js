@@ -71,6 +71,55 @@ async function connectWith(token) {
   return { ok: true, text: `String Cortex: Connected as ${r.json.name} at ${r.json.company} for ${who(id.account)}. Your token stays on this laptop.` };
 }
 
+/**
+ * Connecting from the company's member list (server connect-requests.js, docs/roster-connect.md), for the identity
+ * logged in now when it has no token. The first time, the plugin asks the server with a claim secret it keeps
+ * (claim.json in the identity's folder, mode 600; only its sha256 is sent). The answer is only the company's mode.
+ * In 'list' mode, every later call asks whether the person (or an admin) approved this laptop; once approved the
+ * server hands over a token bound to this Claude account, which is traded like a pasted one.
+ * → { mode: 'token' } (use the token form), { mode: 'list', status: 'pending' | 'refused' }, or
+ *   { connected: true, text }. null: no identity, or the server can't be reached.
+ */
+const CLAIM_RECHECK_MS = 24 * 3600e3; // a company on the token mode is asked again after a day (it may switch)
+async function listConnect() {
+  const cfg = push.config();
+  const id = push.current(cfg);
+  if (!id || push.readToken(cfg, id.key)) return null;
+  const file = path.join(push.DIR, 'identities', id.key, 'claim.json');
+  let c = push.readJson(file, null);
+  const crypto = require('crypto');
+  if (!c || (c.mode === 'token' && Date.now() - Date.parse(c.asked_at || 0) > CLAIM_RECHECK_MS)) {
+    const secret = c?.secret || crypto.randomBytes(32).toString('hex');
+    let r;
+    try {
+      r = await push.call('POST', `${cfg.url}/api/plugin/connect-request`, { timeout: 5000, body: {
+        identity: push.idBody(id.account), email: id.account.email || null,
+        laptop: { name: require('os').hostname(), install_id: id.account.install_id || null },
+        claim_hash: crypto.createHash('sha256').update(secret).digest('hex'),
+      } });
+    } catch { return null; }
+    if (r.status !== 200) return { mode: 'token' };
+    c = { secret, mode: r.json.mode === 'list' ? 'list' : 'token', status: 'pending', asked_at: new Date().toISOString() };
+    push.writeJson(file, c);
+  }
+  if (c.mode !== 'list') return { mode: 'token' };
+  if (c.status === 'refused') return { mode: 'list', status: 'refused' };
+  let s;
+  try { s = await push.call('POST', `${cfg.url}/api/plugin/connect-status`, { timeout: 5000, body: { claim: c.secret } }); } catch { return null; }
+  if (s.status !== 200) return { mode: 'list', status: 'pending' };
+  if (s.json.status === 'approved' && s.json.refresh_token) {
+    const done = await connectWith(s.json.refresh_token);
+    if (done.ok) { try { require('fs').unlinkSync(file); } catch {} return { connected: true, text: done.text }; }
+    push.writeJson(file, { ...c, status: 'refused' });
+    return { mode: 'list', status: 'refused' };
+  }
+  if (s.json.status === 'refused' || s.json.status === 'delivered') {
+    push.writeJson(file, { ...c, status: 'refused' });
+    return { mode: 'list', status: 'refused' };
+  }
+  return { mode: 'list', status: 'pending' };
+}
+
 function ancestors(dir) {
   const out = [];
   for (let d = path.resolve(dir); d && out.length < 32; d = path.dirname(d)) {
@@ -141,4 +190,4 @@ function disconnect() {
   return { had, account: id.account };
 }
 
-module.exports = { TOKEN_RE, tokenIn, NO_IDENTITY, who, asIdentity, connectWith, folder, choose, disconnect };
+module.exports = { TOKEN_RE, tokenIn, NO_IDENTITY, who, asIdentity, connectWith, listConnect, folder, choose, disconnect };

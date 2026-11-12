@@ -46,12 +46,17 @@ const TOOLS = `mcp__plugin_${pluginName()}_cortex__`;
 
 // a note for Claude that goes with whatever this prompt answers (not with a blocked prompt, which Claude never sees)
 let carry = '';
+let carryMsg = ''; // a line for the person that goes with whatever this prompt answers (connected from the member list)
 const done = (obj) => {
   if (carry && !(obj && obj.decision === 'block')) {
     obj = obj || {};
     const h = obj.hookSpecificOutput || { hookEventName: 'UserPromptSubmit' };
     h.additionalContext = h.additionalContext ? `${carry} ${h.additionalContext}` : carry;
     obj.hookSpecificOutput = h;
+  }
+  if (carryMsg && !(obj && obj.decision === 'block')) {
+    obj = obj || {};
+    obj.systemMessage = obj.systemMessage ? `${carryMsg}\n${obj.systemMessage}` : carryMsg;
   }
   if (obj) process.stdout.write(JSON.stringify(obj));
   process.exit(0);
@@ -92,6 +97,36 @@ async function main(input) {
   // 2. no token yet for this identity: the form (once per session; with the gate, every prompt). The session is noted
   // (nudged.json), so that once the token is there, Claude in that session is told so (2b).
   const nk = `${input.session_id}:${id.key}`;
+  // 2a. the company connects people from its member list (server connect-requests.js): this laptop asks once, then
+  // each prompt checks whether the person or an admin approved it; approved → connected here, no token to paste
+  let viaList = null;
+  if (!push.readToken(cfg, id.key)) viaList = await cortex.listConnect().catch(() => null);
+  if (viaList?.connected) {
+    carry = `String Cortex is now connected for ${cortex.who(id.account)}: the person’s organisation connected this laptop from its member list after an approval (no token was needed). `
+      + 'What this conversation said earlier about String Cortex not being connected, or about a token, no longer applies. '
+      + 'If the person asks what String Cortex is: their organisation’s place where their Claude Code conversations are saved and searchable, under their own name; they see their own there. '
+      + 'Answer the person’s message.';
+    carryMsg = `✓ ${viaList.text}`; // a line for the person, with whatever the folder step below answers
+    const seenC = push.readJson(NUDGED, {});
+    if (seenC[nk]) { delete seenC[nk]; push.writeJson(NUDGED, seenC); }
+  }
+  if (!push.readToken(cfg, id.key) && viaList?.mode === 'list' && viaList.status === 'pending') {
+    const seen = push.readJson(NUDGED, {});
+    if (!required && input.session_id && seen[nk]) return done();
+    if (input.session_id && !seen[nk]) {
+      seen[nk] = new Date().toISOString();
+      require('fs').mkdirSync(push.DIR, { recursive: true, mode: 0o700 });
+      push.writeJson(NUDGED, Object.fromEntries(Object.entries(seen).sort((a, b) => (a[1] < b[1] ? 1 : -1)).slice(0, 50)));
+    }
+    return tell(
+      `String Cortex is not connected yet for ${cortex.who(id.account)}. This laptop asked the person’s organisation to connect it from the organisation’s member list, and is waiting for an approval: `
+      + `the person approves it in String Cortex (${cfg.url}/app/ → avatar → Claude Code token → "This is me"), or an organisation admin does (Organisation → Setup → Connecting Claude Code → Laptops waiting). `
+      + 'Once approved it connects by itself on a later message; nothing is pasted. If the person is not on the organisation’s list, nothing will come: they connect with their own token instead (/cortex connect). '
+      + 'Tell the person this in two short lines. Do not ask for a token in chat. '
+      + (required ? hold : 'Then answer the person’s message.'),
+      `String Cortex: this laptop asked to connect ${cortex.who(id.account)}. Approve it in String Cortex (avatar → Claude Code token → This is me), or ask your admin. Or connect with your own token: /cortex connect.`,
+    );
+  }
   if (!push.readToken(cfg, id.key)) {
     const seen = push.readJson(NUDGED, {});
     if (!required && input.session_id && seen[nk]) return done();
