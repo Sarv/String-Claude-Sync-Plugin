@@ -29,7 +29,7 @@ function tokenIn(prompt) {
 }
 const who = (acct) => `${acct.email || acct.account_uuid} (${acct.org_name || acct.org_uuid})`;
 /** Why there is no identity to connect: for the person. */
-const NO_IDENTITY = 'String Cortex: Claude Code is signed out or using an API key instead of an organisation account. Sign in with your company’s Claude account using /login, then try again.';
+const NO_IDENTITY = 'String Cortex: Claude Code is signed out or using an API key instead of an organisation account. Sign in with your organisation’s Claude account using /login, then try again.';
 
 async function api(cfg, method, p, token, body) {
   return push.call(method, `${cfg.url}${p}`, { headers: { Authorization: `Bearer ${token}` }, body, timeout: 5000 });
@@ -56,8 +56,8 @@ async function connectWith(token) {
   try { x = await push.trade(cfg, t[1], id.account, 5000); } catch { return { ok: false, text: `String Cortex: Cannot reach ${cfg.url} to verify your token. Please try again shortly.` }; }
   if (x.status !== 200 || !x.json.access_token) {
     const code = x.json.code;
-    if (code === 'ORG_NOT_ALLOWED') return { ok: false, text: `String Cortex: ${who(id.account)} is not in one of your company’s approved Claude organisations, so this token cannot connect this account. Sign in with your company’s Claude account, or ask an admin to add the organisation under Company → AI platforms. The token itself is still valid.` };
-    if (code === 'IDENTITY_IN_USE') return { ok: false, text: `String Cortex: Another person has already connected ${who(id.account)} with their token. Each Claude account belongs to one person. Contact your company admin.` };
+    if (code === 'ORG_NOT_ALLOWED') return { ok: false, text: `String Cortex: ${who(id.account)} is not in one of your organisation’s AI orgs, so this token cannot connect this account. Sign in with your organisation’s Claude account, or ask an admin to add the AI org under Organisation → Setup → AI platforms. The token itself is still valid.` };
+    if (code === 'IDENTITY_IN_USE') return { ok: false, text: `String Cortex: Another person has already connected ${who(id.account)} with their token. Each Claude account belongs to one person. Contact your organisation’s admin.` };
     if (code === 'IDENTITY_MISMATCH') return { ok: false, text: `String Cortex: This token is linked to a different Claude account. Generate a new token for ${who(id.account)} from your avatar → Claude Code token.` };
     return { ok: false, text: 'String Cortex: This token is invalid. It may already have been used, replaced, or revoked. Generate a new token from your avatar → Claude Code token.' };
   }

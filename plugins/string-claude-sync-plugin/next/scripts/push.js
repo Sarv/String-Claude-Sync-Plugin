@@ -639,7 +639,7 @@ async function pushRange(cfg, { slug, session_id, cwd, fd, range, acct, key, set
       log(`${slug} › ${session_id.slice(0, 8)}: This folder’s project is no longer available. Claude Code will ask you to choose another.`);
       return { ok: false, at: cur.start };
     } else if (code === 'ORG_NOT_ALLOWED') {
-      say(`org:${key}`, `${slug} › ${session_id.slice(0, 8)}: Waiting because ${who(acct)} belongs to a Claude organisation no longer linked to the company in String Cortex.`);
+      say(`org:${key}`, `${slug} › ${session_id.slice(0, 8)}: Waiting because ${who(acct)} belongs to an AI org no longer linked to the organisation in String Cortex.`);
       return { ok: false, at: cur.start };
     } else if (code === 'IDENTITY_MISMATCH') {
       log(`ERROR ${slug} › ${session_id.slice(0, 8)}: Token for ${who(acct)} belongs to another Claude account. Data kept for retry.`);
@@ -731,7 +731,7 @@ function status() {
   const cfg = config();
   const now = identityOf(account(), cfg);
   console.log(`Server:     ${cfg.url}`);
-  console.log(`Signed in:  ${now ? who(now.account) : 'No Claude organisation account (signed out or using API key); lines are not sent'}`);
+  console.log(`Signed in:  ${now ? who(now.account) : 'No Claude account of an AI org (signed out or using an API key); lines are not sent'}`);
   const ids = listIdentities().filter((i) => !i.url || i.url === cfg.url);
   if (!ids.length) console.log('Accounts:   none yet');
   for (const i of ids) {

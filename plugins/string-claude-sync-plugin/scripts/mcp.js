@@ -32,7 +32,7 @@ function request(method, params, timeoutMs = 10 * 60_000) {
 const TOOLS = [
   {
     name: 'connect_cortex',
-    description: 'Connect Claude Code to String Cortex, where the company stores Claude Code conversations. Open a form for the person’s Claude Code token. The token goes to the plugin, never to Claude. Use when not connected or when asked to connect again. Never request the token in chat.',
+    description: 'Connect Claude Code to String Cortex, where the organisation stores Claude Code conversations. Open a form for the person’s Claude Code token. The token goes to the plugin, never to Claude. Use when not connected or when asked to connect again. Never request the token in chat.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   },
   {

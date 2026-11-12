@@ -91,7 +91,7 @@ async function main(input) {
 
   if (!id) return done(); // no Claude account of an organisation (logged out, an API key): its lines are not sent
   const required = (process.env.STRING_CLAUDE_SYNC_REQUIRED || '') === '1';
-  const hold = 'The person’s company makes String Cortex compulsory: until this is done, do not work on their request. '
+  const hold = 'The person’s organisation makes String Cortex compulsory: until this is done, do not work on their request. '
     + 'Help them only with this (answer their questions about it, take what it needs), then ask them to send their request again.';
 
   // 2. no token yet for this identity: the form (once per session; with the gate, every prompt). The session is noted
@@ -120,7 +120,7 @@ async function main(input) {
     }
     return tell(
       `String Cortex is not connected yet for ${cortex.who(id.account)}. This laptop asked the person’s organisation to connect it from the organisation’s member list, and is waiting for an approval: `
-      + `the person approves it in String Cortex (${cfg.url}/app/ → avatar → Claude Code token → "This is me"), or an organisation admin does (Organisation → Setup → Connecting Claude Code → Laptops waiting). `
+      + `the person approves it in String Cortex (${cfg.url}/app/ → avatar → Claude Code token → "This is me"), or an organisation admin does (String Cortex → Manage → Laptops). `
       + 'Once approved it connects by itself on a later message; nothing is pasted. If the person is not on the organisation’s list, nothing will come: they connect with their own token instead (/cortex connect). '
       + 'Tell the person this in two short lines. Do not ask for a token in chat. '
       + (required ? hold : 'Then answer the person’s message.'),
@@ -161,7 +161,7 @@ async function main(input) {
   // the company files folders without a choice into its default workspace and project (server filing.js): taken by itself
   const d = f.filing?.default;
   if (d?.workspace?.id && d?.project?.id && !cortex.choose(f.key, d.workspace.id, d.project.id).error) {
-    return note(`String Cortex: Conversations in ${f.key} will use the ${d.project.name} project (${d.workspace.name} workspace), your company’s default. To change it, type /cortex project.`);
+    return note(`String Cortex: Conversations in ${f.key} will use the ${d.project.name} project (${d.workspace.name} workspace), your organisation’s default. To change it, type /cortex project.`);
   }
   // the company makes choosing compulsory (its setting in String Cortex), as the managed STRING_CLAUDE_SYNC_REQUIRED does
   const requiredHere = required || f.filing?.required === true;
