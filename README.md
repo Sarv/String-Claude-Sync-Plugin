@@ -11,7 +11,7 @@ The Claude Code plugin for **String Cortex**, a StringHub service. After every C
 This repo holds only the plugin. It is published from the (private) server repo; make changes there.
 
 - Plugin: `string-claude-sync-plugin`
-- Marketplace: `string-tools` (this repo, `Sarv/String-Claude-Sync-Plugin`)
+- Marketplace: `string-tools` (this repo, `Sarv/String-Cortex-Claude-Plugin`)
 
 ## Coming: your own Claude Code token (String Cortex on StringHub)
 
@@ -66,7 +66,7 @@ Your company admin does this once; employees do nothing. (StringHub creates your
    {
      "extraKnownMarketplaces": {
        "string-tools": {
-         "source": { "source": "github", "repo": "Sarv/String-Claude-Sync-Plugin" },
+         "source": { "source": "github", "repo": "Sarv/String-Cortex-Claude-Plugin" },
          "autoUpdate": true
        }
      },
@@ -92,10 +92,10 @@ You set it up yourself, once.
 1. StringHub creates a one-person company for you (it needs your Claude account's organisation id: `~/.claude.json` → `oauthAccount.organizationUuid`) and sends you a login. Log in, open **Company → Generate token**, and copy the token.
 2. Install the plugin, in a terminal:
    ```bash
-   claude plugin marketplace add Sarv/String-Claude-Sync-Plugin
+   claude plugin marketplace add Sarv/String-Cortex-Claude-Plugin
    claude plugin install string-claude-sync-plugin@string-tools
    ```
-   Or inside Claude Code: `/plugin marketplace add Sarv/String-Claude-Sync-Plugin`, then `/plugin install string-claude-sync-plugin@string-tools`.
+   Or inside Claude Code: `/plugin marketplace add Sarv/String-Cortex-Claude-Plugin`, then `/plugin install string-claude-sync-plugin@string-tools`.
 3. Open your Claude Code settings file: `~/.claude/settings.json` (Windows: `%USERPROFILE%\.claude\settings.json`). Create it if it doesn't exist. Add the two settings in an `"env"` block:
    ```json
    {
