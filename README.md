@@ -1,8 +1,10 @@
 # String Cortex plugin
 
-> **This is the `beta` branch (1.9.0-beta.7).** The plugin does nothing on a laptop unless the file
-> `~/Downloads/cortex-beta-plugin.txt` exists; there it signs in with the person's own String Cortex token and asks
-> each folder's workspace and project (`/cortex`). Marketplace `string-tools-beta`. The live plugin is on `main`.
+> **This is the `beta` branch (1.9.0-beta.8): plugin `string-cortex`, marketplace `sarv-cortex-beta`**
+> (`string-cortex@sarv-cortex-beta`; until beta.7 it was `string-claude-sync-plugin@string-tools-beta`). The plugin does
+> nothing on a laptop unless the file `~/Downloads/cortex-beta-plugin.txt` exists; there it connects with the person's
+> own String Cortex token or from their organisation's member list, and asks each folder's workspace and project
+> (`/cortex`). The live plugin (`string-claude-sync-plugin@string-tools`, 1.5.3) is on `main` until the release.
 
 The Claude Code plugin for **String Cortex**, a StringHub service. After every Claude reply it sends the new part of the conversation to your String Cortex server, together with the Claude account that is logged in. Claude Code is never slowed down: the plugin's hook finishes in milliseconds and a background process does the sending.
 
@@ -36,7 +38,8 @@ turn where the account was switched, stay on the laptop for now.
 
 Delete `next.json` to go back. The plugin's tools for Claude (`connect_cortex`, `cortex_workspaces`,
 `set_cortex_workspace`) exist only on such a laptop. To skip their permission question, an organisation can add
-`"permissions": { "allow": ["mcp__plugin_string-claude-sync-plugin_cortex"] }` to its managed settings.
+`"permissions": { "allow": ["mcp__plugin_string-cortex_cortex"] }` to its managed settings (beta.8 on; before it,
+`mcp__plugin_string-claude-sync-plugin_cortex`).
 
 ## What the plugin needs
 

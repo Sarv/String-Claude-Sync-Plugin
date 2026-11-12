@@ -1,14 +1,14 @@
 {
-  "name": "string-tools-beta",
+  "name": "sarv-cortex-beta",
   "owner": {
-    "name": "StringHub"
+    "name": "Sarv"
   },
   "metadata": {
     "description": "String Cortex client, BETA build (branch beta): off unless ~/Downloads/cortex-beta-plugin.txt exists"
   },
   "plugins": [
     {
-      "name": "string-claude-sync-plugin",
+      "name": "string-cortex",
       "source": "./plugins/string-claude-sync-plugin",
       "description": "Sends every Claude Code turn to your String Cortex server (Stop hook + pusher)"
     }

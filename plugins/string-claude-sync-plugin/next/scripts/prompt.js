@@ -44,7 +44,7 @@ const NUDGED = path.join(push.DIR, 'nudged.json');
 // the plugin's tools for Claude, by the name Claude Code loaded the plugin under (a test copy has its own name: a copy
 // of the managed plugin's name is ignored)
 const pluginName = () => {
-  try { return require(path.join(process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..', '..'), '.claude-plugin', 'plugin.json')).name; } catch { return 'string-claude-sync-plugin'; }
+  try { return require(path.join(process.env.CLAUDE_PLUGIN_ROOT || path.join(__dirname, '..', '..'), '.claude-plugin', 'plugin.json')).name; } catch { return 'string-cortex'; }
 };
 const TOOLS = `mcp__plugin_${pluginName()}_cortex__`;
 
