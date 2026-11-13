@@ -1,7 +1,7 @@
 {
   "name": "string-cortex",
-  "version": "1.9.0-beta.8",
-  "description": "String Cortex BETA: does nothing unless the laptop has ~/Downloads/cortex-beta-plugin.txt. With it: connect with your own Claude Code token or from your organisation's member list, choose a workspace and project per folder, /cortex, and send each Claude Code turn to String Cortex. Needs node on PATH.",
+  "version": "1.9.0-beta.9",
+  "description": "String Cortex BETA: connect with your own Claude Code token or from your organisation's member list, choose a workspace and project per folder, /cortex, and send each Claude Code turn to String Cortex. Needs node on PATH.",
   "author": {
     "name": "Sarv"
   }

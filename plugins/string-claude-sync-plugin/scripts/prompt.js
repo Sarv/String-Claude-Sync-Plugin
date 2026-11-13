@@ -1,12 +1,11 @@
 #!/usr/bin/env node
-// Claude Code UserPromptSubmit hook (beta build): without the beta file
-// (scripts/flag.js) it does nothing. With it, next/'s prompt hook answers for this prompt.
+// Claude Code UserPromptSubmit hook (beta build): next/'s prompt hook answers for this prompt (settings from the
+// optional file, scripts/flag.js).
 const path = require('path');
 const { spawnSync } = require('child_process');
 const flag = require('./flag');
 
 const f = flag.read();
-if (!f) process.exit(0);
 let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (c) => (input += c));

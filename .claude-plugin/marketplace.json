@@ -4,7 +4,7 @@
     "name": "Sarv"
   },
   "metadata": {
-    "description": "String Cortex client, BETA build (branch beta): off unless ~/Downloads/cortex-beta-plugin.txt exists"
+    "description": "String Cortex client, BETA build (branch beta)"
   },
   "plugins": [
     {

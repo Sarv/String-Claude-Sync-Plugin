@@ -5,7 +5,7 @@ argument-hint: "[status | connect [token] | project | disconnect]"
 
 The person typed `/cortex $ARGUMENTS`. Handle it with the String Cortex plugin's tools (their names end in
 `connect_cortex`, `cortex_status`, `set_cortex_folder` and `disconnect_cortex`). If none of those tools is available,
-say in one line: "String Cortex's new sign-in is not on for this laptop yet." and stop.
+say in one line: "String Cortex can't run on this laptop: it needs Node.js (https://nodejs.org)." and stop.
 
 Never ask for the Claude Code token in chat, and never show ids to the person.
 

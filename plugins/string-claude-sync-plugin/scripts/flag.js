@@ -1,26 +1,27 @@
-// BETA BUILD (branch plugin-beta, published to the plugin repo's `beta` branch; docs/plugin-beta.md in the server
-// repo). Remove this gate when the new code is released to everyone.
+// BETA BUILD (published to the plugin repo's `beta` branch; docs/plugin-beta.md in the server repo).
 //
-// The plugin does something only on a laptop that has the beta file:
+// Since 1.9.0-beta.9 (2026-11-13, CORTEX-129) the plugin runs on every laptop that has it: next/ (the person's own
+// token or the organisation's member list, workspace and project per folder, /cortex). legacy/ (1.5.3) never runs in
+// the beta build. hooks.json only checks in the shell that `node` is there (no Node.js: the hooks exit 0 and print
+// nothing).
+//
+// The old beta file is now an optional settings file for one laptop (testing, another server):
 //   ~/Downloads/cortex-beta-plugin.txt        (STRING_CLAUDE_SYNC_BETA_FILE overrides the path, for tests)
-// No file: no hook, no tool, no pusher; Claude Code works exactly as without the plugin (hooks.json checks the file
-// in the shell before node even starts). With it: next/ (the person's own token, workspace and project per folder,
-// /cortex). legacy/ (1.5.3) never runs in the beta build.
-//
-// The file may be empty. If it holds JSON, it can set:
+// It may be missing or empty. If it holds JSON, it can set:
 //   "url": "https://dev.cortex.stringhub.com"   the String Cortex server (beats the managed STRING_CLAUDE_SYNC_URL)
 //   "required": true                            compulsory mode on this laptop (as STRING_CLAUDE_SYNC_REQUIRED=1)
-//   "dir": "…"                                  next/'s own folder (default ~/.string-claude-sync-next)
+//   "dir": "…"                                  next/'s own folder (default ~/.string-claude-sync-next, the same as
+//                                               during the beta with the file, so a connected laptop stays connected)
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const FILE = process.env.STRING_CLAUDE_SYNC_BETA_FILE || path.join(os.homedir(), 'Downloads', 'cortex-beta-plugin.txt');
 
-/** The beta settings ({} when the file is empty or not JSON), or null: no file, so the plugin stays off. */
+/** The laptop's settings from the optional file: {} when it is missing, empty or not JSON. */
 function read() {
   let text;
-  try { text = fs.readFileSync(FILE, 'utf8'); } catch { return null; }
+  try { text = fs.readFileSync(FILE, 'utf8'); } catch { return {}; }
   try {
     const f = JSON.parse(text);
     return f && typeof f === 'object' && !Array.isArray(f) ? f : {};

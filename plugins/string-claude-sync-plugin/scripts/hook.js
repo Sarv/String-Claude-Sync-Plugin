@@ -1,12 +1,11 @@
 #!/usr/bin/env node
-// Claude Code Stop hook (beta build): only on a laptop with the beta file (scripts/flag.js) it runs next/'s hook,
-// which marks the session and starts the pusher. legacy/ never runs here. Never blocks or fails Claude Code.
+// Claude Code Stop hook (beta build): runs next/'s hook, which marks the session and starts the pusher (settings
+// from the optional file, scripts/flag.js). legacy/ never runs here. Never blocks or fails Claude Code.
 const path = require('path');
 const { spawnSync } = require('child_process');
 const flag = require('./flag');
 
 const f = flag.read();
-if (!f) process.exit(0);
 let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (c) => (input += c));

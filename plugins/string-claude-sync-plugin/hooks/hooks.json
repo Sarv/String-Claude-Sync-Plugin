@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f \"${STRING_CLAUDE_SYNC_BETA_FILE:-$HOME/Downloads/cortex-beta-plugin.txt}\" ] || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.js\"",
+            "command": "command -v node >/dev/null 2>&1 || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.js\"",
             "timeout": 5
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f \"${STRING_CLAUDE_SYNC_BETA_FILE:-$HOME/Downloads/cortex-beta-plugin.txt}\" ] || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt.js\"",
+            "command": "command -v node >/dev/null 2>&1 || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt.js\"",
             "timeout": 15
           }
         ]

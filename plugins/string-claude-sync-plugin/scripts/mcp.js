@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The plugin's tools for Claude: a small MCP server over stdio (newline-delimited JSON-RPC; no dependencies).
-// Without the beta file (scripts/flag.js) it has no tools, so the laptop sees nothing new. With it (next/):
+// next/'s tools (settings from the optional file, scripts/flag.js):
 //   connect_cortex        an organisation on its member list: this laptop asks (again, after a refusal) and waits for
 //                         an approval. Otherwise opens a form (MCP elicitation) for the person's Claude Code token; the
 //                         token goes from the form to this process, is traded with the server and kept on the laptop.
@@ -14,9 +14,8 @@
 const readline = require('readline');
 const flag = require('./flag');
 
-const f = flag.read();
-if (f) flag.useNext(f);
-const next = f ? { push: require('../next/scripts/push'), cortex: require('../next/scripts/cortex') } : null;
+flag.useNext(flag.read());
+const next = { push: require('../next/scripts/push'), cortex: require('../next/scripts/cortex') };
 const VERSION = require('../.claude-plugin/plugin.json').version;
 
 const send = (msg) => process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', ...msg })}\n`);
@@ -155,9 +154,9 @@ async function handle(m) {
   }
   if (m.id === undefined) return; // notifications (initialized, cancelled, …)
   if (m.method === 'ping') return send({ id: m.id, result: {} });
-  if (m.method === 'tools/list') return send({ id: m.id, result: { tools: next ? TOOLS : [] } });
+  if (m.method === 'tools/list') return send({ id: m.id, result: { tools: TOOLS } });
   if (m.method === 'tools/call') {
-    if (!next || !TOOLS.some((t) => t.name === m.params?.name)) return send({ id: m.id, error: { code: -32602, message: `Unknown tool ${m.params?.name}` } });
+    if (!TOOLS.some((t) => t.name === m.params?.name)) return send({ id: m.id, error: { code: -32602, message: `Unknown tool ${m.params?.name}` } });
     let result;
     try { result = await call(m.params.name, m.params.arguments || {}); } catch (e) { result = text(`String Cortex: ${e.message}`, true); }
     return send({ id: m.id, result });

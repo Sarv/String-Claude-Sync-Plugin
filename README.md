@@ -1,8 +1,8 @@
 # String Cortex plugin
 
-> **This is the `beta` branch (1.9.0-beta.8): plugin `string-cortex`, marketplace `sarv-cortex-beta`**
-> (`string-cortex@sarv-cortex-beta`; until beta.7 it was `string-claude-sync-plugin@string-tools-beta`). The plugin does
-> nothing on a laptop unless the file `~/Downloads/cortex-beta-plugin.txt` exists; there it connects with the person's
+> **This is the `beta` branch (1.9.0-beta.9): plugin `string-cortex`, marketplace `sarv-cortex-beta`**
+> (`string-cortex@sarv-cortex-beta`; until beta.7 it was `string-claude-sync-plugin@string-tools-beta`). Since beta.9 it runs on
+> every laptop that has it (Node.js needed; `~/Downloads/cortex-beta-plugin.txt` is no longer needed). It connects with the person's
 > own String Cortex token or from their organisation's member list, and asks each folder's workspace and project
 > (`/cortex`). The live plugin (`string-claude-sync-plugin@string-tools`, 1.5.3) is on `main` until the release.
 
