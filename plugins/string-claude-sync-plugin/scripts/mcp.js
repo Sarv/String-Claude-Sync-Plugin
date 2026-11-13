@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The plugin's tools for Claude: a small MCP server over stdio (newline-delimited JSON-RPC; no dependencies).
-// next/'s tools (settings from the optional file, scripts/flag.js):
+// next/'s tools:
 //   connect_cortex        an organisation on its member list: this laptop asks (again, after a refusal) and waits for
 //                         an approval. Otherwise opens a form (MCP elicitation) for the person's Claude Code token; the
 //                         token goes from the form to this process, is traded with the server and kept on the laptop.
@@ -12,9 +12,7 @@
 //   disconnect_cortex     forgets this laptop's token for the Claude account logged in (`/cortex disconnect`)
 // The plugin's /cortex command (../commands/cortex.md) uses them.
 const readline = require('readline');
-const flag = require('./flag');
-
-flag.useNext(flag.read());
+require('./env').useNext();
 const next = { push: require('../next/scripts/push'), cortex: require('../next/scripts/cortex') };
 const VERSION = require('../.claude-plugin/plugin.json').version;
 

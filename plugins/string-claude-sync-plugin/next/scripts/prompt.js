@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Claude Code UserPromptSubmit hook for String Cortex (docs/plugin.md in the server repo).
-// Started by ../../scripts/prompt.js on a laptop with the flag file (../../scripts/flag.js).
+// Started by ../../scripts/prompt.js (through scripts/run.sh), with ../../scripts/env.js.
 //
 //   0. The turn register: a mark with the transcript's size and the identity logged in now (push.js `note`), first,
 //      whatever else happens (lines are tied to an identity only between its own marks).

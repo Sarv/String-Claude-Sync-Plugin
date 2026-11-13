@@ -1,6 +1,6 @@
 {
   "name": "string-cortex",
-  "version": "1.9.0-beta.10",
+  "version": "1.9.0-beta.11",
   "description": "String Cortex BETA: connect with your own Claude Code token or from your organisation's member list, choose a workspace and project per folder, /cortex, and send each Claude Code turn to String Cortex. Needs Node.js (found also when installed with nvm, Volta, fnm, asdf, nodenv or Homebrew).",
   "author": {
     "name": "Sarv"
