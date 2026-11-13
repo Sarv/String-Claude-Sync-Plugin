@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v node >/dev/null 2>&1 || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.js\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run.sh\" hook.js",
             "timeout": 5
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v node >/dev/null 2>&1 || exit 0; node \"${CLAUDE_PLUGIN_ROOT}/scripts/prompt.js\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/run.sh\" prompt.js",
             "timeout": 15
           }
         ]

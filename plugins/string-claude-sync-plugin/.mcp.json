@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "cortex": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/mcp.js"]
+      "command": "sh",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/run.sh", "mcp.js"]
     }
   }
 }
